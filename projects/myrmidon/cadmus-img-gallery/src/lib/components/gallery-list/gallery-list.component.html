@@ -1,0 +1,59 @@
+<div>
+  @if (loading$ | async) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  } @if (page$ | async; as page) {
+  <div id="container">
+    <!-- frame -->
+    <div id="frame">
+      <!-- image -->
+      @for (img of page.items; track img) {
+      <div>
+        <figure>
+          <img
+            alt="{{ img.title }}"
+            [ngSrc]="img.uri"
+            [width]="options.width"
+            [height]="options.height"
+            priority
+          />
+          <div class="form-row">
+            <figcaption>{{ img.title }}</figcaption>
+            <button type="button" mat-icon-button (click)="pickImage(img)">
+              <mat-icon class="mat-primary">check_circle</mat-icon>
+            </button>
+          </div>
+          @if (img.description) {
+          <div class="dsc" [style.width]="options.width + 'px'">
+            {{ img.description }}
+          </div>
+          }
+        </figure>
+      </div>
+      }
+    </div>
+    <!-- filter -->
+    <div id="filter">
+      <cadmus-gallery-filter [entries]="entries || []"></cadmus-gallery-filter>
+    </div>
+    <!-- paginator -->
+    <div id="paginator" class="form-row">
+      <button
+        type="button"
+        mat-icon-button
+        matTooltip="Clear items cache"
+        (click)="reset()"
+      >
+        <mat-icon class="mat-warn">autorenew</mat-icon>
+      </button>
+      <mat-paginator
+        [length]="page.total"
+        [pageIndex]="page.pageNumber - 1"
+        [pageSize]="page.pageSize"
+        [pageSizeOptions]="[2, 10, 20, 30, 50]"
+        [showFirstLastButtons]="true"
+        (page)="onPageChange($event)"
+      ></mat-paginator>
+    </div>
+  </div>
+  }
+</div>

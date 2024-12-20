@@ -1,0 +1,89 @@
+<form [formGroup]="form" (submit)="apply()">
+  <form [formGroup]="metaForm" (submit)="addMetadatum()">
+    <fieldset class="form-row">
+      <legend>add filter</legend>
+
+      <!-- metaId (bound) -->
+      @if (entries().length) {
+      <mat-form-field>
+        <mat-label>name</mat-label>
+        <mat-select [formControl]="metaId">
+          @for (e of entries(); track e) {
+          <mat-option [value]="e.id">{{ e.value }}</mat-option>
+          }
+        </mat-select>
+        @if ( $any(metaId).errors?.required && (metaId.dirty || metaId.touched)
+        ) {
+        <mat-error>name required</mat-error>
+        }
+      </mat-form-field>
+      }
+      <!-- metaId (free) -->
+      @else {
+      <mat-form-field>
+        <mat-label>name</mat-label>
+        <input matInput [formControl]="metaId" />
+        @if ( $any(metaId).errors?.required && (metaId.dirty || metaId.touched)
+        ) {
+        <mat-error>name required</mat-error>
+        } @if ( $any(metaId).errors?.maxLength && (metaId.dirty ||
+        metaId.touched) ) {
+        <mat-error>name too long</mat-error>
+        }
+      </mat-form-field>
+      }
+
+      <!-- metaValue -->
+      <mat-form-field>
+        <mat-label>value</mat-label>
+        <input matInput [formControl]="metaValue" />
+        @if ( $any(metaValue).errors?.maxLength && (metaValue.dirty ||
+        metaValue.touched) ) {
+        <mat-error>value too long</mat-error>
+        }
+      </mat-form-field>
+
+      <button type="submit" [disabled]="metaForm.invalid" mat-icon-button>
+        <mat-icon class="mat-primary">add_circle</mat-icon>
+      </button>
+    </fieldset>
+  </form>
+
+  <!-- list -->
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>name</th>
+        <th>value</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (m of metadata.value; track m; let i = $index) {
+      <tr>
+        <td class="fit-width">
+          <button type="button" mat-icon-button (click)="deleteMetadatum(i)">
+            <mat-icon class="mat-warn">clear</mat-icon>
+          </button>
+        </td>
+        <td [matTooltip]="m.id">{{ m.label }}</td>
+        <td>{{ m.value }}</td>
+      </tr>
+      }
+    </tbody>
+  </table>
+
+  <div class="form-row" style="gap: 0" role="group" aria-label="toolbar">
+    <button
+      mat-icon-button
+      type="button"
+      (click)="reset()"
+      matTooltip="Reset filters"
+    >
+      <mat-icon class="mat-warn">clear</mat-icon>
+    </button>
+    <button type="submit" mat-icon-button matTooltip="Apply filters">
+      <mat-icon class="mat-primary">check_circle</mat-icon>
+    </button>
+  </div>
+</form>

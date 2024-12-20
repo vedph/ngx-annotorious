@@ -4,6 +4,12 @@
   "compileOnSave": false,
   "compilerOptions": {
     "paths": {
+      "@myrmidon/cadmus-img-gallery": [
+        "./dist/myrmidon/cadmus-img-gallery"
+      ],
+      "@myrmidon/cadmus-img-gallery-iiif": [
+        "./dist/myrmidon/cadmus-img-gallery-iiif"
+      ],
       "@myrmidon/ngx-annotorious": [
         "./dist/myrmidon/ngx-annotorious"
       ]

@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "build-lib": "ng build @myrmidon/ngx-annotorious"
+    "build-ann": "ng build @myrmidon/ngx-annotorious",
+    "build-gal": "ng build @myrmidon/cadmus-img-gallery && ng build @myrmidon/cadmus-img-gallery-iiif"
   },
   "private": true,
   "dependencies": {
@@ -22,6 +23,7 @@
     "@angular/platform-browser-dynamic": "^19.0.0",
     "@angular/router": "^19.0.0",
     "@annotorious/annotorious": "^3.0.19",
+    "@myrmidon/cadmus-core": "^10.0.0",
     "@myrmidon/ngx-tools": "^0.0.3",
     "@myrmidon/paged-data-browsers": "^4.0.1",
     "rxjs": "~7.8.0",

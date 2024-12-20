@@ -1,9 +1,23 @@
 {
   "name": "@myrmidon/ngx-annotorious",
   "version": "0.0.1",
+  "description": "Annotorious integration for Angular.",
+  "keywords": [
+    "Annotorious",
+    "Angular"
+  ],
+  "homepage": "https://github.com/vedph/ngx-annotorious",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vedph/ngx-annotorious"
+  },
+  "author": {
+    "name": "Daniele Fusi"
+  },
   "peerDependencies": {
     "@angular/common": "^19.0.0",
-    "@angular/core": "^19.0.0"
+    "@angular/core": "^19.0.0",
+    "@annotorious/annotorious": "^3.0.0"
   },
   "dependencies": {
     "tslib": "^2.3.0"
