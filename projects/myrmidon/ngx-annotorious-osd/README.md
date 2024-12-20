@@ -11,6 +11,16 @@ npm i openseadragon @annotorious/openseadragon
 npm i --save-dev --force @types/openseadragon
 ```
 
+Also you must copy OSD assets into the output dist folder in build. To this end, add to `angular.json` under your project's `architect/build/options/assets`:
+
+```json
+{
+  "glob": "**/*",
+  "input": "node_modules/openseadragon/build/openseadragon/images",
+  "output": "/images"
+}
+```
+
 Ensure to wrap your img in a div and apply the directive to the div. Also setup a minimum height for OSD in your app's `styles.css`:
 
 ```css
