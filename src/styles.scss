@@ -1,1 +1,61 @@
-/* You can add global styles to this file, and also import other style files */
+@use "@angular/material" as mat;
+
+@include mat.core();
+
+$light-theme: mat.define-theme(
+  (
+    color: (
+      theme-type: light,
+      primary: mat.$blue-palette,
+    ),
+  )
+);
+
+$accent-theme: mat.define-theme(
+  (
+    color: (
+      theme-type: light,
+      primary: mat.$violet-palette,
+    ),
+  )
+);
+
+$error-theme: mat.define-theme(
+  (
+    color: (
+      theme-type: light,
+      primary: mat.$red-palette,
+    ),
+  )
+);
+
+html {
+  @include mat.all-component-themes($light-theme);
+  & {
+    color-scheme: light;
+  }
+}
+
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+.mat-primary, .mat-accent {
+  @include mat.all-component-colors($accent-theme);
+}
+
+.mat-error, .mat-warn {
+  @include mat.all-component-colors($error-theme);
+}
+
+mat-icon.mat-accent, mat-icon.mat-primary {
+  color: var(--mdc-filled-text-field-focus-label-text-color) !important;
+}
+mat-icon.mat-error, mat-icon.mat-warn {
+  color: var(--mat-form-field-error-focus-trailing-icon-color) !important;
+}

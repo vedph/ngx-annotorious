@@ -1,0 +1,12 @@
+fieldset {
+  border: 1px solid silver;
+  border-radius: 4px;
+  padding: 6px;
+}
+legend {
+  color: silver;
+}
+.center-content {
+  display: flex;
+  justify-content: center;
+}

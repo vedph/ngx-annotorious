@@ -1,0 +1,27 @@
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.muted {
+  color: silver;
+}
+tr:nth-child(odd) {
+  background-color: #fafafa;
+}
+th {
+  font-weight: normal;
+  color: silver;
+  text-align: left;
+}
+tr.selected {
+  border: 1px solid orange;
+}
+td.fit-width {
+  width: 1px;
+  white-space: nowrap;
+}
+@media only screen and (max-width: 959px) {
+  .noif-lt-md {
+    display: none;
+  }
+}

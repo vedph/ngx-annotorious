@@ -1,0 +1,9 @@
+<form [formGroup]="form">
+  <mat-button-toggle-group formControlName="tool">
+    @for (t of tools(); track t) {
+    <mat-button-toggle [value]="t.id" [matTooltip]="t.tip">
+      <mat-icon> {{ t.icon }}</mat-icon></mat-button-toggle
+    >
+    }
+  </mat-button-toggle-group>
+</form>

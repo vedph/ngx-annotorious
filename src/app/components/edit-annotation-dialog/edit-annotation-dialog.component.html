@@ -1,0 +1,8 @@
+<h2 mat-dialog-title>Edit Annotation</h2>
+<div mat-dialog-content>
+  <app-edit-annotation
+    [annotation]="data"
+    (cancel)="onCloseClick()"
+    (annotationChange)="onSaveClick($event!)"
+  />
+</div>
