@@ -32,6 +32,8 @@ export class ImgAnnotationList<T> {
   private _annotations$: BehaviorSubject<ListAnnotation<T>[]>;
   private _selectedAnnotation$: BehaviorSubject<ListAnnotation<T> | null>;
 
+  private _editingAnnotation?: boolean;
+
   /**
    * The annotations in this list.
    */
@@ -117,16 +119,14 @@ export class ImgAnnotationList<T> {
   /**
    * Edit the specified annotation in the editor dialog.
    * @param annotation The annotation to edit.
-   * @param isNew True if the annotation is new.
-   * @returns True if the annotation was saved, false if it was deleted.
-   * An annotation is deleted if it was new and the dialog was canceled.
+   * @returns The edited annotation or null if cancelled.
    */
   public editAnnotation(
-    annotation: ImageAnnotation,
-    isNew?: boolean
-  ): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-      // get payload
+    annotation: ImageAnnotation
+  ): Promise<ListAnnotation<T> | null> {
+    this._editingAnnotation = true;
+    return new Promise<ListAnnotation<T> | null>((resolve) => {
+      // get payload from an existing annotation
       const payload = this._annotations$.value.find(
         (a) => a.id === annotation.id
       )?.payload;
@@ -144,22 +144,10 @@ export class ImgAnnotationList<T> {
       dialogRef
         .afterClosed()
         .pipe(take(1))
-        .subscribe((saved: ListAnnotation<any>) => {
-          // on OK, save the annotation
-          if (saved) {
-            if (!saved.image) {
-              saved.image = this.image!;
-            }
-            this.saveAnnotation(saved, isNew);
-            resolve(true);
-          } else {
-            // else delete it if new
-            if (isNew) {
-              this.removeAnnotation(annotation.id);
-              resolve(false);
-            }
-            resolve(true);
-          }
+        .subscribe((edited: ListAnnotation<T>) => {
+          this._editingAnnotation = false;
+          // return the edited annotation or null if cancelled
+          return edited ? resolve(edited) : resolve(null);
         });
     });
   }
@@ -169,7 +157,7 @@ export class ImgAnnotationList<T> {
    */
   private deselectAnnotation(): void {
     if (this._selectedAnnotation$.value) {
-      this.annotator.cancelSelected();
+      this.annotator.setSelected();
       this._selectedAnnotation$.next(null);
     }
   }
@@ -185,12 +173,15 @@ export class ImgAnnotationList<T> {
   ): void {
     const annotations = [...this._annotations$.value];
 
+    // add if new, update if not
     if (isNew) {
       this._annotations$.next([...annotations, annotation]);
       this.annotator.addAnnotation(annotation.value);
       this._selectedAnnotation$.next(annotation);
     } else {
-      const i = this._annotations$.value.findIndex(a => a.id === annotation.id);
+      const i = this._annotations$.value.findIndex(
+        (a) => a.id === annotation.id
+      );
       annotations.splice(i, 1, annotation);
       this._annotations$.next(annotations);
       this.annotator.updateAnnotation(annotation);
@@ -203,7 +194,7 @@ export class ImgAnnotationList<T> {
    * to deselect.
    */
   public selectAnnotation(annotation?: ListAnnotation<T>): void {
-    this.annotator.cancelSelected();
+    this.annotator.setSelected();
 
     if (annotation) {
       this._selectedAnnotation$.next(annotation);
@@ -217,10 +208,13 @@ export class ImgAnnotationList<T> {
    * Edit the annotation at the specified index.
    * @param index The annotation index.
    */
-  public editAnnotationAt(index: number): void {
+  public async editAnnotationAt(index: number): Promise<void> {
     const annotation = this._annotations$.value[index];
     if (annotation) {
-      this.editAnnotation(annotation.value, false);
+      const edited = await this.editAnnotation(annotation.value);
+      if (edited) {
+        this.saveAnnotation(edited);
+      }
     }
   }
 
@@ -244,27 +238,36 @@ export class ImgAnnotationList<T> {
   public removeAnnotationAt(index: number): void {
     const annotation = this._annotations$.value[index];
 
-    // deselect annotation before deleting it
+    // locally deselect annotation before deleting it
     if (this._selectedAnnotation$.value?.id === annotation.id) {
-      this.deselectAnnotation();
+      this._selectedAnnotation$.next(null);
     }
 
     // remove from annotorious
     this.annotator.removeAnnotation(annotation.id);
+
     // remove from local
     const annotations = [...this._annotations$.value];
     annotations.splice(index, 1);
     this._annotations$.next(annotations);
   }
 
+  // #region Annotorious event handlers
   /**
    * Handle the Annotorious create event.
    * @param event The event.
    */
   public async onCreateAnnotation(annotation: ImageAnnotation) {
-    console.log('onCreateAnnotation');
+    console.log('lst:onCreateAnnotation');
 
-    await this.editAnnotation(annotation, true);
+    const edited = await this.editAnnotation(annotation);
+    if (edited) {
+      this.saveAnnotation(edited, true);
+    } else {
+      console.log('annotation creation cancelled');
+      this.annotator.setSelected();
+      // this.annotator.removeAnnotation(annotation.id);
+    }
   }
 
   /**
@@ -274,16 +277,16 @@ export class ImgAnnotationList<T> {
    * selection.
    */
   public onSelectionChange(annotation?: ImageAnnotation) {
-    console.log('onSelectionChange');
-    // if no annotation, deselect
-    if (!annotation) {
-      this.deselectAnnotation();
-    } else {
-      // else select it in the list
-      this._selectedAnnotation$.next(
-        this._annotations$.value.find((a) => a.id === annotation.id) || null
-      );
+    console.log('lst:onSelectionChange');
+    // if editing, ignore selection change
+    if (this._editingAnnotation) {
+      return;
     }
+
+    // update local selection
+    this._selectedAnnotation$.next(annotation
+      ? this._annotations$.value.find((a) => a.id === annotation.id) || null
+      : null);
   }
 
   /**
@@ -291,7 +294,7 @@ export class ImgAnnotationList<T> {
    * @param event The event.
    */
   public onDeleteAnnotation(annotation: ImageAnnotation) {
-    console.log('onDeleteAnnotation');
+    console.log('lst:onDeleteAnnotation');
     // remove from local
     const annotations = [...this._annotations$.value];
     const i = annotations.findIndex((a) => a.id === annotation.id);
@@ -300,4 +303,5 @@ export class ImgAnnotationList<T> {
       this._annotations$.next(annotations);
     }
   }
+  // #endregion
 }

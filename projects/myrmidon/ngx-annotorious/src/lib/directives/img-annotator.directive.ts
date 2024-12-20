@@ -42,7 +42,7 @@ export interface AnnotoriousConfig {
  * Default configuration for the annotorious directive.
  */
 export const DEFAULT_ANNOTORIOUS_CONFIG: AnnotoriousConfig = {
-  autoSave: true,
+  autoSave: false,
   drawingEnabled: true,
   drawingMode: 'drag',
 };

@@ -2,62 +2,42 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.0.0.
 
-## Code scaffolding
+The logic inferred from the Annotorious flow is described below for each operation.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Creating Annotations
 
-```bash
-ng generate component component-name
-```
+On create event (`onCreateAnnotation`):
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+1. popup a dialog and edit the received annotation object.
+2. if the dialog is discarded, just stop and clear selection (via `setSelection()`).
+3. else, add the annotation (via `addAnnotation`). A wrapper for that annotation with additional payload is saved in the list storage.
 
-```bash
-ng generate --help
-```
+This seems to work:
 
-## Building
+- I can see that the annotation object is present both in Annotorious and in list.
+- I can select/deselect the annotation and see visuals change accordingly and events fired.
 
-To build the library, run:
+Yet there are bugs:
 
-```bash
-ng build ngx-annotorious
-```
+🐛 If I now select the annotation and drag to move it, it is moved but the original rectangle in the primitive position is never removed. So I end up with a ghost rectangle. The rectangle corresponding to the new position is actively responding to selection and deselection, while the ghost one just sits there but is not interactive, as expected.
 
-This command will compile your project, and the build artifacts will be placed in the `dist/` directory.
+🐛 The same happens when deleting, see [below](#deleting-annotations).
 
-### Publishing the Library
+🐛 If I create a couple of annotations and select one or another, the selection events are fired but no visual hint (the decorators at the rectangle angles) appear.
 
-Once the project is built, you can publish your library by following these steps:
+## Deleting Annotations
 
-1. Navigate to the `dist` directory:
-   ```bash
-   cd dist/ngx-annotorious
-   ```
+🐛 If I delete an annotation using the red bin button, the annotation is removed both from Annotorious (via `removeAnnotation(id)`) and the list. I also get the deleted event as a feedback.
 
-2. Run the `npm publish` command to publish your library to the npm registry:
-   ```bash
-   npm publish
-   ```
+Yet, a ghost rectangle still remains there, no longer interactive as it happens when moving an annotation.
 
-## Running unit tests
+Repro steps:
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+1. create an annotation and enter some text, then click OK.
+2. delete the created annotation by clicking the trash button.
 
-```bash
-ng test
-```
+## Editing Annotations
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+1. create an annotation and enter some text, then click OK.
+2. edit it by clicking the edit button and change the text, then click OK.
+3. TODO
