@@ -1,0 +1,51 @@
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title>
+      <h2>OSD Image Annotator</h2>
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <div id="container">
+      <div id="image">
+        <div id="toolbar">
+          <img-annotator-toolbar (toolChange)="onToolChange($event)" />
+        </div>
+        <div
+          id="osd-container"
+          osdImgAnnotator
+          (createAnnotation)="onCreateAnnotation($event)"
+          (deleteAnnotation)="onDeleteAnnotation($event)"
+          (clickAnnotation)="onClickAnnotation($event)"
+          (selectionChanged)="onSelectionChanged($event)"
+          (annotatorInit)="onAnnotatorInit($event)"
+          [tool]="tool"
+          [additionalTools]="['circle', 'ellipse']"
+        >
+          <img alt="image" />
+          <!-- <img
+            alt="image"
+            src="https://github.com/openseadragon/example-images/blob/gh-pages/grand-canyon-landscape-overlooking.jpg"
+          /> -->
+        </div>
+      </div>
+      <div id="list">
+        <app-my-img-annotation-list
+          [image]="image"
+          [annotator]="annotator"
+          [editorComponent]="editor"
+          (listInit)="onListInit($event)"
+        />
+      </div>
+    </div>
+  </mat-card-content>
+  <div>
+    <button
+      type="button"
+      mat-flat-button
+      class="mat-warn"
+      (click)="clearAnnotations()"
+    >
+      clear
+    </button>
+  </div>
+</mat-card>

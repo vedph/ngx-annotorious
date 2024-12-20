@@ -10,3 +10,14 @@ This library requires the following packages:
 npm i openseadragon @annotorious/openseadragon
 npm i --save-dev --force @types/openseadragon
 ```
+
+Ensure to wrap your img in a div and apply the directive to the div. Also setup a minimum height for OSD in your app's `styles.css`:
+
+```css
+div#osd-container {
+  min-height: 500px;
+}
+```
+
+- [example images](https://github.com/openseadragon/example-images/tree/gh-pages) e.g. <https://github.com/openseadragon/example-images/blob/gh-pages/grand-canyon-landscape-overlooking.jpg>
+- [OSD in Angular](http://openseadragon.github.io/docs/): [issue](https://github.com/openseadragon/openseadragon/issues/1858)
