@@ -1,0 +1,12 @@
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title>
+      <h2>Image Annotator Toolbar</h2>
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <img-annotator-toolbar (toolChange)="onToolChange($event)" />
+    <hr />
+    <p>{{ tool }}</p>
+  </mat-card-content>
+</mat-card>

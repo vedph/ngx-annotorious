@@ -1,48 +1,47 @@
-<mat-card appearance="outlined">
-  <mat-card-header>
-    <mat-card-title>
-      <h2>Image Annotator</h2>
-    </mat-card-title>
-  </mat-card-header>
-  <mat-card-content>
-    <div id="container">
-      <div id="image">
-        <div id="toolbar">
-          <img-annotator-toolbar (toolChange)="onToolChange($event)" />
-        </div>
-        <div>
-          <img
-            alt="image"
-            imgAnnotator
-            (createAnnotation)="onCreateAnnotation($event)"
-            (deleteAnnotation)="onDeleteAnnotation($event)"
-            (clickAnnotation)="onClickAnnotation($event)"
-            (selectionChanged)="onSelectionChanged($event)"
-            (annotatorInit)="onAnnotatorInit($event)"
-            [tool]="tool"
-            [additionalTools]="['circle', 'ellipse', 'freehand']"
-            src="sample.jpg"
-          />
-        </div>
-      </div>
-      <div id="list">
-        <app-my-img-annotation-list
-          [image]="image"
-          [annotator]="annotator"
-          [editorComponent]="editor"
-          (listInit)="onListInit($event)"
-        />
+<div>
+  <header>
+    <mat-toolbar class="mat-primary">
+      <span id="logo"
+        ><img src="./img/logo-white-40.png" alt="Fusisoft"
+      /></span>
+      <a mat-button routerLink="/home">Home</a>
+
+      <!-- cadmus -->
+      <button type="button" mat-button [matMenuTriggerFor]="cadmusMenu">
+        Cadmus
+      </button>
+      <mat-menu #cadmusMenu>
+        <a mat-menu-item routerLink="/img/img-gallery">Image gallery</a>
+        <a mat-menu-item routerLink="/img/img-annotator">Image annotator</a>
+        <a mat-menu-item routerLink="/img/img-annotator-toolbar"
+          >Image annotator toolbar</a
+        >
+        <!-- <a mat-menu-item routerLink="/img/sd-img-gallery"
+          >Seadragon image gallery</a
+        >
+        <a mat-menu-item routerLink="/img/sd-img-annotator"
+          >Seadragon image annotator</a
+        > -->
+      </mat-menu>
+    </mat-toolbar>
+  </header>
+
+  <main>
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer>
+    <div class="footer-container">
+      <div class="info">
+        Annotorious Wrapper for Cadmus bricks {{ version }} by
+        <a rel="noopener" href="http://www.fusisoft.it" target="_blank"
+          >Daniele Fusi</a
+        >
+        at
+        <a rel="noopener" href="https://www.unive.it/pag/39287" target="_blank"
+          >VeDPH</a
+        >
       </div>
     </div>
-  </mat-card-content>
-  <div>
-    <button
-      type="button"
-      mat-flat-button
-      class="mat-warn"
-      (click)="clearAnnotations()"
-    >
-      clear
-    </button>
-  </div>
-</mat-card>
+  </footer>
+</div>

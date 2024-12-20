@@ -278,8 +278,7 @@ export class ImgAnnotationList<T> {
       this.saveAnnotation(edited, true);
     } else {
       console.log('annotation creation cancelled');
-      this.annotator.setSelected();
-      // this.annotator.removeAnnotation(annotation.id);
+      this.annotator.removeAnnotation(annotation.id);
     }
   }
 

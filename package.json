@@ -24,6 +24,7 @@
     "@angular/router": "^19.0.0",
     "@annotorious/annotorious": "^3.0.19",
     "@myrmidon/cadmus-core": "^10.0.0",
+    "@myrmidon/cadmus-ui-custom-action-bar": "^6.0.0",
     "@myrmidon/ngx-tools": "^0.0.3",
     "@myrmidon/paged-data-browsers": "^4.0.1",
     "rxjs": "~7.8.0",

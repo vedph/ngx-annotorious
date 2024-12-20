@@ -1,0 +1,58 @@
+<mat-tab-group [(selectedIndex)]="tabIndex">
+  <mat-tab label="Annotator">
+    <div id="container">
+      @if (image) {
+      <div id="image">
+        <div>
+          <img-annotator-toolbar (toolChange)="onToolChange($event)" />
+        </div>
+        <div>
+          <img
+            alt="image"
+            imgAnnotator
+            (createAnnotation)="onCreateAnnotation($event)"
+            (deleteAnnotation)="onDeleteAnnotation($event)"
+            (annotatorInit)="onAnnotatorInit($event)"
+            [tool]="tool"
+            [additionalTools]="['circle', 'ellipse', 'freehand']"
+            [src]="image!.uri"
+          />
+        </div>
+      </div>
+      }
+      <div id="list">
+        <app-my-img-annotation-list
+          [image]="image!"
+          [annotator]="annotator"
+          [editorComponent]="editorComponent"
+          (listInit)="onListInit($event)"
+        />
+
+        <div id="dump">
+          <form [formGroup]="form" (submit)="setAnnotations()">
+            <mat-form-field style="width: 100%">
+              <textarea matInput rows="10" [formControl]="json"></textarea>
+            </mat-form-field>
+            <div class="form-row">
+              <mat-checkbox [formControl]="frozen">frozen</mat-checkbox>
+              <button
+                mat-flat-button
+                type="submit"
+                class="mat-warn"
+                matTooltip="Set annotations from JSON"
+              >
+                <mat-icon>check_circle</mat-icon> set
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </mat-tab>
+  <mat-tab label="Gallery">
+    <cadmus-gallery-list
+      [entries]="entries"
+      (imagePick)="onImagePick($event)"
+    />
+  </mat-tab>
+</mat-tab-group>
