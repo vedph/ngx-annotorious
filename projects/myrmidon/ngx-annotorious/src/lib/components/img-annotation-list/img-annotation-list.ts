@@ -185,10 +185,10 @@ export class ImgAnnotationList<T> {
   ): void {
     const annotations = [...this._annotations$.value];
 
-    // add if new, update if not
+    // update
     if (isNew) {
       this._annotations$.next([...annotations, annotation]);
-      this.annotator.addAnnotation(annotation.value);
+      this.annotator.updateAnnotation(annotation.value);
       this._selectedAnnotation$.next(annotation);
     } else {
       const i = this._annotations$.value.findIndex(
