@@ -8,7 +8,7 @@ import { GalleryOptionsService } from './services/gallery-options.service';
 import {
   GalleryFilter,
   GalleryService,
-  IMAGE_GALLERY_SERVICE_KEY,
+  IMAGE_GALLERY_SERVICE_TOKEN,
 } from './models';
 import { GalleryImage } from './directives/img-annotator.directive';
 
@@ -25,7 +25,7 @@ export class GalleryListRepository {
   public page$: Observable<DataPage<GalleryImage>>;
 
   constructor(
-    @Inject(IMAGE_GALLERY_SERVICE_KEY)
+    @Inject(IMAGE_GALLERY_SERVICE_TOKEN)
     private _service: GalleryService,
     private _options: GalleryOptionsService
   ) {

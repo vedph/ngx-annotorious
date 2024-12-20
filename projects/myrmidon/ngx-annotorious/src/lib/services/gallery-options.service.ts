@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@angular/core';
-import { GalleryOptions, IMAGE_GALLERY_OPTIONS_KEY } from '../models';
+import { GalleryOptions, IMAGE_GALLERY_OPTIONS_TOKEN } from '../models';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 /**
@@ -14,7 +14,7 @@ export class GalleryOptionsService {
   private _data$: BehaviorSubject<GalleryOptions>;
 
   constructor(
-    @Inject(IMAGE_GALLERY_OPTIONS_KEY)
+    @Inject(IMAGE_GALLERY_OPTIONS_TOKEN)
     data: GalleryOptions
   ) {
     this._data$ = new BehaviorSubject<GalleryOptions>(data);

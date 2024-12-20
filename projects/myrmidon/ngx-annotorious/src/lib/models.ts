@@ -3,26 +3,31 @@ import { Observable } from 'rxjs';
 import { DataPage } from '@myrmidon/ngx-tools';
 
 import { GalleryImage } from './directives/img-annotator.directive';
+import { InjectionToken } from '@angular/core';
 
 /**
- * The key used for DI of the gallery server options.
+ * The token used for DI of the gallery server options.
  * Provide it in your consumer app module under providers:
  * {
- *   provider: GALLERY_IMAGE_OPTIONS_KEY,
+ *   provider: GALLERY_IMAGE_OPTIONS_TOKEN,
  *   useValue: YOUR_OPTIONS_CONSTANT_OBJECT
  * }
  */
-export const IMAGE_GALLERY_OPTIONS_KEY = 'imgGalleryOptions';
+export const IMAGE_GALLERY_OPTIONS_TOKEN = new InjectionToken(
+  'imgGalleryOptions'
+);
 
 /**
- * The key used for DI of the gallery service.
+ * The token used for DI of the gallery service.
  * Provide it in your consumer app module under providers:
  * {
- *   provider: GALLERY_IMAGE_SERVICE_KEY,
+ *   provider: GALLERY_IMAGE_SERVICE_TOKEN,
  *   useValue: YOUR_OPTIONS_CONSTANT_OBJECT
  * }
  */
-export const IMAGE_GALLERY_SERVICE_KEY = 'imgGalleryService';
+export const IMAGE_GALLERY_SERVICE_TOKEN = new InjectionToken(
+  'imgGalleryService'
+);
 
 /**
  * Essential options for a gallery image. You can derive your own model

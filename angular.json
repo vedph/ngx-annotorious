@@ -197,6 +197,39 @@
           }
         }
       }
+    },
+    "@myrmidon/ngx-annotorious-osd": {
+      "projectType": "library",
+      "root": "projects/myrmidon/ngx-annotorious-osd",
+      "sourceRoot": "projects/myrmidon/ngx-annotorious-osd/src",
+      "prefix": "anno",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/myrmidon/ngx-annotorious-osd/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/myrmidon/ngx-annotorious-osd/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/myrmidon/ngx-annotorious-osd/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "tsConfig": "projects/myrmidon/ngx-annotorious-osd/tsconfig.spec.json",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ]
+          }
+        }
+      }
     }
   }
 }

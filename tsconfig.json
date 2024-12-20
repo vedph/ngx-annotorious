@@ -12,6 +12,9 @@
       ],
       "@myrmidon/ngx-annotorious": [
         "./dist/myrmidon/ngx-annotorious"
+      ],
+      "@myrmidon/ngx-annotorious-osd": [
+        "./dist/myrmidon/ngx-annotorious-osd"
       ]
     },
     "outDir": "./dist/out-tsc",
