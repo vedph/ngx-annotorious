@@ -30,9 +30,7 @@ This library is a minimalist set of components wrapping [Annotorious V3](https:/
 
 ## Demo App
 
-In this demo, the app component uses an image annotator component wrapping the core components from this workspace.
-
-The app component contains:
+In the demo shell workspace hosting this library for development, the homepage uses an image annotator component wrapping some core components:
 
 - a toolbar component for tool selection ([ImgAnnotationToolbar](./projects/myrmidon/ngx-annotorious/src/lib/components/img-annotator-toolbar/img-annotator-toolbar.component.ts));
 - an `img` with a simple image loaded from the application assets for demo purposes. This element is decorated with a directive wrapping the Annotorious functionality ([ImgAnnotatorDirective](./projects/myrmidon/ngx-annotorious/src/lib/directives/img-annotator.directive.ts));
@@ -44,7 +42,7 @@ The core of the library is the lightweight directive [ImgAnnotatorDirective](./p
 
 ## ImgAnnotationList
 
-Other components are then provided to ease the usage of this directive in the context of an images gallery. Currently, only a subset of these components are present in this repository because this is mainly provided as a repro for issues in dealing with Annotorious in Angular, and every non-relevant piece of code would just add rumor.
+Other components are then provided to ease the usage of this directive in the context of an images gallery.
 
 The core logic for orchestrating events and actions for the wrapped annotator is implemented in a generic `ImgAnnotationList` class. This keeps its own storage of annotations, so that it includes any third-party model, whatever its complexity, attached to the selected portion of an image; and provides a simple API surface to be consumed by other Angular components.
 
