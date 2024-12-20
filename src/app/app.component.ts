@@ -106,7 +106,8 @@ export class AppComponent {
     annotation: ImageAnnotation;
     originalEvent: PointerEvent;
   }) {
-    this._list?.editAnnotation(event.annotation);
+    console.log('Clicked annotation:', event);
+    // this._list?.editAnnotation(event.annotation);
   }
 
   public onDeleteAnnotation(annotation: ImageAnnotation) {

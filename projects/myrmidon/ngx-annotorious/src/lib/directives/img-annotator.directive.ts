@@ -167,7 +167,9 @@ export class ImgAnnotatorDirective {
     effect(() => {
       console.log('annotator config', this.config());
       this._ann?.destroy();
-      this.initAnnotator();
+      setTimeout(() => {
+        this.initAnnotator();
+      });
     });
 
     // when tool changes, select it in the annotator
@@ -268,9 +270,9 @@ export class ImgAnnotatorDirective {
     });
 
     // set the default drawing tool
-    if (this.tool() !== 'rectangle') {
-      this._ann.setDrawingTool(this.tool());
-    }
+    // if (this.tool() !== 'rectangle') {
+    //   this._ann.setDrawingTool(this.tool());
+    // }
 
     // emit the annotator on init completion
     this.annotatorInit.emit(this._ann);
