@@ -121,7 +121,7 @@ export class ImgAnnotationList<T> {
    * @param annotation The annotation to edit.
    * @returns The edited annotation or null if cancelled.
    */
-  public editAnnotation(
+  private getEditedAnnotation(
     annotation: ImageAnnotation
   ): Promise<ListAnnotation<T> | null> {
     this._editingAnnotation = true;
@@ -147,8 +147,20 @@ export class ImgAnnotationList<T> {
         .subscribe((edited: ListAnnotation<T>) => {
           this._editingAnnotation = false;
           // return the edited annotation or null if cancelled
-          return edited ? resolve(edited) : resolve(null);
+          edited ? resolve(edited) : resolve(null);
         });
+    });
+  }
+
+  /**
+   * Edit the specified annotation.
+   * @param annotation The annotation to edit.
+   */
+  public editAnnotation(annotation: ImageAnnotation): void {
+    this.getEditedAnnotation(annotation).then((edited) => {
+      if (edited) {
+        this.saveAnnotation(edited);
+      }
     });
   }
 
@@ -208,13 +220,14 @@ export class ImgAnnotationList<T> {
    * Edit the annotation at the specified index.
    * @param index The annotation index.
    */
-  public async editAnnotationAt(index: number): Promise<void> {
+  public editAnnotationAt(index: number): void {
     const annotation = this._annotations$.value[index];
     if (annotation) {
-      const edited = await this.editAnnotation(annotation.value);
-      if (edited) {
-        this.saveAnnotation(edited);
-      }
+      this.getEditedAnnotation(annotation.value).then((edited) => {
+        if (edited) {
+          this.saveAnnotation(edited);
+        }
+      });
     }
   }
 
@@ -260,7 +273,7 @@ export class ImgAnnotationList<T> {
   public async onCreateAnnotation(annotation: ImageAnnotation) {
     console.log('lst:onCreateAnnotation');
 
-    const edited = await this.editAnnotation(annotation);
+    const edited = await this.getEditedAnnotation(annotation);
     if (edited) {
       this.saveAnnotation(edited, true);
     } else {
@@ -284,9 +297,11 @@ export class ImgAnnotationList<T> {
     }
 
     // update local selection
-    this._selectedAnnotation$.next(annotation
-      ? this._annotations$.value.find((a) => a.id === annotation.id) || null
-      : null);
+    this._selectedAnnotation$.next(
+      annotation
+        ? this._annotations$.value.find((a) => a.id === annotation.id) || null
+        : null
+    );
   }
 
   /**

@@ -32,7 +32,7 @@ export class MyImgAnnotationListComponent extends ImgAnnotationListComponent<any
     this.list?.removeAnnotationAt(index);
   }
 
-  public editAnnotation(annotation: ListAnnotation<string>): void {
-    this.list?.editAnnotation(annotation.value);
+  public async editAnnotationAt(index: number) {
+    await this.list?.editAnnotationAt(index);
   }
 }

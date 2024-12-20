@@ -196,6 +196,8 @@ export class ImgAnnotatorDirective {
   }
 
   private initAnnotator(): void {
+    this._ann?.destroy();
+
     const cfg = this.config() || DEFAULT_ANNOTORIOUS_CONFIG;
     cfg.image = this._elementRef.nativeElement;
     if (!cfg.image) {

@@ -35,9 +35,3 @@ Repro steps:
 
 1. create an annotation and enter some text, then click OK.
 2. delete the created annotation by clicking the trash button.
-
-## Editing Annotations
-
-1. create an annotation and enter some text, then click OK.
-2. edit it by clicking the edit button and change the text, then click OK.
-3. TODO
