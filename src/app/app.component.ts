@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { RouterOutlet } from '@angular/router';
+import { RouterModule } from '@angular/router';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -14,7 +14,7 @@ import { EnvService } from '@myrmidon/ngx-tools';
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   imports: [
-    RouterOutlet,
+    RouterModule,
     FormsModule,
     ReactiveFormsModule,
     MatButtonModule,

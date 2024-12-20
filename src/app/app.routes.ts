@@ -6,14 +6,14 @@ import { GalleryImageAnnotatorPgComponent } from './components/gallery-image-ann
 
 export const routes: Routes = [
   { path: '', component: ImgAnnotationPgComponent, pathMatch: 'full' },
-  // toolbar
+  // other/toolbar
   {
-    path: 'toolbar',
+    path: 'other/toolbar',
     component: ImgAnnotatorToolbarPgComponent,
   },
-  // cadmus/img-gallery
+  // other/img-gallery
   {
-    path: 'cadmus/img-gallery',
+    path: 'other/img-gallery',
     component: GalleryImageAnnotatorPgComponent,
   },
   { path: '', redirectTo: 'home', pathMatch: 'full' },

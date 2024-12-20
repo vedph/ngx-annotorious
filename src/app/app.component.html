@@ -6,16 +6,13 @@
       /></span>
       <a mat-button routerLink="/home">Home</a>
 
-      <!-- cadmus -->
-      <button type="button" mat-button [matMenuTriggerFor]="cadmusMenu">
-        Cadmus
+      <!-- other -->
+      <button type="button" mat-button [matMenuTriggerFor]="otherMenu">
+        Other
       </button>
-      <mat-menu #cadmusMenu>
-        <a mat-menu-item routerLink="/img/img-gallery">Image gallery</a>
-        <a mat-menu-item routerLink="/img/img-annotator">Image annotator</a>
-        <a mat-menu-item routerLink="/img/img-annotator-toolbar"
-          >Image annotator toolbar</a
-        >
+      <mat-menu #otherMenu>
+        <a mat-menu-item routerLink="/other/toolbar">Image annotator toolbar</a>
+        <a mat-menu-item routerLink="/other/img-gallery">Image gallery</a>
         <!-- <a mat-menu-item routerLink="/img/sd-img-gallery"
           >Seadragon image gallery</a
         >
