@@ -60,7 +60,7 @@ export class OsdImgAnnotationPgComponent {
     this.tool = 'rectangle';
     this.image = {
       id: '1',
-      uri: 'https://github.com/openseadragon/example-images/blob/gh-pages/grand-canyon-landscape-overlooking.jpg',
+      uri: 'canyon.jpg',
       title: 'sample',
       description: 'Sample image',
     };

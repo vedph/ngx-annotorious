@@ -13,6 +13,8 @@ npm i openseadragon @annotorious/openseadragon
 npm i --save-dev --force @types/openseadragon
 ```
 
+>To avoid build warning, add `openseadragon` to your `angular.json`'s `allowedCommonJsDependencies`.
+
 Also, you must copy OSD assets into the output `dist` folder during the build process. To this end, add to `angular.json` under your project's `architect/build/options/assets`:
 
 ```json

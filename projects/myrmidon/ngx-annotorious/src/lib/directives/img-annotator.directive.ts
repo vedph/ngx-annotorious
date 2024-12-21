@@ -5,6 +5,8 @@ import {
   effect,
   input,
   output,
+  AfterViewInit,
+  OnDestroy,
 } from '@angular/core';
 import {
   createImageAnnotator,
@@ -54,7 +56,7 @@ export const DEFAULT_ANNOTORIOUS_CONFIG: AnnotoriousConfig = {
 @Directive({
   selector: '[imgAnnotator]',
 })
-export class ImgAnnotatorDirective {
+export class ImgAnnotatorDirective implements AfterViewInit, OnDestroy {
   private _ann?: ImageAnnotator;
 
   /**
@@ -280,5 +282,9 @@ export class ImgAnnotatorDirective {
 
   public ngAfterViewInit() {
     this.initAnnotator();
+  }
+
+  public ngOnDestroy() {
+    this._ann?.destroy();
   }
 }

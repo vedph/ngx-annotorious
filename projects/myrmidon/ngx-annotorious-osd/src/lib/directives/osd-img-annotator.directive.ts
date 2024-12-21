@@ -1,9 +1,11 @@
 import {
+  AfterViewInit,
   Directive,
   effect,
   ElementRef,
   input,
   model,
+  OnDestroy,
   output,
 } from '@angular/core';
 
@@ -27,9 +29,10 @@ import OpenSeadragon from 'openseadragon';
 @Directive({
   selector: '[osdImgAnnotator]',
 })
-export class OsdImgAnnotatorDirective {
+export class OsdImgAnnotatorDirective implements AfterViewInit, OnDestroy {
   private _ann?: OpenSeadragonAnnotator;
   private _viewer?: OpenSeadragon.Viewer;
+  private _imageElement?: HTMLImageElement;
 
   /**
    * The initial configuration for the annotator. Note that the image property
@@ -136,14 +139,14 @@ export class OsdImgAnnotatorDirective {
    */
   public readonly viewportIntersect = output<ImageAnnotation[]>();
 
-  constructor(private _elementRef: ElementRef<HTMLImageElement>) {
+  constructor(private _elementRef: ElementRef<HTMLElement>) {
     // when config changes, recreate annotator
     effect(() => {
       console.log('annotator config', this.config());
-      this._ann?.destroy();
-      setTimeout(() => {
-        this.initAnnotator();
-      });
+      this.destroyAnnotator();
+      // setTimeout(() => {
+      this.initAnnotator();
+      // });
     });
 
     // when tool changes, select it in the annotator
@@ -171,27 +174,106 @@ export class OsdImgAnnotatorDirective {
     });
   }
 
-  private initAnnotator(): void {
-    this._ann?.destroy();
-
-    const cfg = this.config() || DEFAULT_ANNOTORIOUS_CONFIG;
-    cfg.image = this._elementRef.nativeElement;
-    if (!cfg.image) {
-      console.error('No image for annotator');
+  private destroyAnnotator(): void {
+    if (this._ann) {
+      this._ann.destroy();
       this._ann = undefined;
+    }
+    if (this._viewer) {
+      this._viewer.destroy();
+      this._viewer = undefined;
+    }
+  }
+
+  private async initAnnotator(): Promise<void> {
+    const container = this._elementRef.nativeElement;
+    this._imageElement = container.querySelector('img') || undefined;
+
+    // hide the original img element as OSD will create its own canvas
+    const imgElement = container.querySelector('img');
+    if (imgElement) {
+      imgElement.style.display = 'none';
+    }
+    this._imageElement = imgElement as HTMLImageElement;
+
+    if (!this._imageElement) {
+      console.error('No image element found');
       return;
     }
 
-    this._viewer = OpenSeadragon({
-      element: this._elementRef.nativeElement,
-      tileSources: {
-        type: 'image',
-        url: typeof cfg.image === 'string' ? cfg.image : cfg.image.src,
-      },
-      // ... other OpenSeadragon options
+    // wait for the image to load to get its natural dimensions
+    console.log('Starting image load check...');
+    if (!this._imageElement.complete) {
+      console.log('Image not loaded, waiting...');
+      await new Promise((resolve) => {
+        this._imageElement!.onload = resolve;
+      });
+    } else {
+      console.log('Image already loaded');
+    }
+
+    console.log('Image dimensions:', {
+      naturalWidth: this._imageElement.naturalWidth,
+      naturalHeight: this._imageElement.naturalHeight,
     });
 
-    this._ann = createOSDAnnotator(this._viewer);
+    // Clear any existing content and prepare container
+    container.style.position = 'relative';
+    container.style.width = '100%';
+    container.style.height = '500px'; // Fixed height instead of padding-based
+    container.style.backgroundColor = '#f0f0f0';
+
+    console.log('Creating OSD viewer...');
+
+    // create viewer with proper configuration
+    this._viewer = OpenSeadragon({
+      element: container,
+      tileSources: {
+        type: 'image',
+        url: this._imageElement.src,
+        width: this._imageElement.naturalWidth,
+        height: this._imageElement.naturalHeight,
+      },
+      debugMode: true, // Enable debug mode for better error reporting
+      visibilityRatio: 1,
+      constrainDuringPan: true,
+      showNavigator: true,
+      immediateRender: false,
+      maxZoomPixelRatio: 10,
+      minZoomImageRatio: 0.8,
+      defaultZoomLevel: 0,
+      prefixUrl: '/images/', // Make sure these images exist
+      navigatorPosition: 'BOTTOM_RIGHT',
+    });
+
+    // add error handler
+    this._viewer.addHandler('open-failed', (event) => {
+      console.error('OSD open failed:', event);
+    });
+
+    console.log('Waiting for OSD to be ready...');
+    // wait for OSD to be ready
+    await new Promise<void>((resolve, reject) => {
+      this._viewer!.addHandler('open', () => {
+        console.log('OSD opened successfully');
+        resolve();
+      });
+
+      // add timeout to prevent infinite wait
+      setTimeout(() => {
+        if (!this._viewer?.world.getItemCount()) {
+          reject(new Error('OSD initialization timeout'));
+        }
+      }, 5000);
+    });
+
+    console.log('Creating annotator...');
+
+    // create annotator
+    this._ann = createOSDAnnotator(this._viewer, {
+      drawingEnabled: true,
+      // TODO add cfg
+    });
 
     // initial annotations
     this._ann.setAnnotations(this.annotations() || []);
@@ -251,5 +333,9 @@ export class OsdImgAnnotatorDirective {
 
   public ngAfterViewInit() {
     this.initAnnotator();
+  }
+
+  public ngOnDestroy() {
+    this.destroyAnnotator();
   }
 }

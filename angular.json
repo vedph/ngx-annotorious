@@ -38,7 +38,8 @@
               "src/styles.scss",
               "node_modules/@annotorious/annotorious/dist/annotorious.css"
             ],
-            "scripts": []
+            "scripts": [],
+            "allowedCommonJsDependencies": ["openseadragon"]
           },
           "configurations": {
             "production": {
