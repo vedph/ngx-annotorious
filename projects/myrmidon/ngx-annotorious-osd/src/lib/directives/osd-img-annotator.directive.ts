@@ -189,7 +189,6 @@ export class OsdImgAnnotatorDirective implements AfterViewInit, OnDestroy {
     const container = this._elementRef.nativeElement;
     this._imageElement = container.querySelector('img') || undefined;
 
-    // hide the original img element as OSD will create its own canvas
     const imgElement = container.querySelector('img');
     if (imgElement) {
       imgElement.style.display = 'none';
@@ -201,15 +200,15 @@ export class OsdImgAnnotatorDirective implements AfterViewInit, OnDestroy {
       return;
     }
 
-    // wait for the image to load to get its natural dimensions
     console.log('Starting image load check...');
     if (!this._imageElement.complete) {
       console.log('Image not loaded, waiting...');
       await new Promise((resolve) => {
-        this._imageElement!.onload = resolve;
+        this._imageElement!.onload = () => {
+          console.log('Image loaded');
+          resolve(null);
+        };
       });
-    } else {
-      console.log('Image already loaded');
     }
 
     console.log('Image dimensions:', {
@@ -217,15 +216,22 @@ export class OsdImgAnnotatorDirective implements AfterViewInit, OnDestroy {
       naturalHeight: this._imageElement.naturalHeight,
     });
 
-    // Clear any existing content and prepare container
+    // clear any existing content and prepare container
     container.style.position = 'relative';
     container.style.width = '100%';
-    container.style.height = '500px'; // Fixed height instead of padding-based
+    container.style.height = '500px';
     container.style.backgroundColor = '#f0f0f0';
 
-    console.log('Creating OSD viewer...');
+    const cfg = this.config() || DEFAULT_ANNOTORIOUS_CONFIG;
+    cfg.image = this._imageElement;
+    if (!cfg.image) {
+      console.error('No image for annotator');
+      this._ann = undefined;
+      return;
+    }
 
     // create viewer with proper configuration
+    console.log('Creating OSD viewer...');
     this._viewer = OpenSeadragon({
       element: container,
       tileSources: {
@@ -238,12 +244,18 @@ export class OsdImgAnnotatorDirective implements AfterViewInit, OnDestroy {
       visibilityRatio: 1,
       constrainDuringPan: true,
       showNavigator: true,
+      navigatorPosition: 'BOTTOM_RIGHT',
       immediateRender: false,
       maxZoomPixelRatio: 10,
       minZoomImageRatio: 0.8,
       defaultZoomLevel: 0,
-      prefixUrl: '/images/', // Make sure these images exist
-      navigatorPosition: 'BOTTOM_RIGHT',
+      prefixUrl: '/images/',
+      // important OSD settings for compatibility with Annotorious
+      gestureSettingsMouse: {
+        clickToZoom: false, // Disable click to zoom as it interferes with annotation
+        scrollToZoom: true,
+        dblClickToZoom: true,
+      },
     });
 
     // add error handler
@@ -267,12 +279,12 @@ export class OsdImgAnnotatorDirective implements AfterViewInit, OnDestroy {
       }, 5000);
     });
 
-    console.log('Creating annotator...');
-
     // create annotator
+    console.log('Creating annotator...');
     this._ann = createOSDAnnotator(this._viewer, {
+      ...cfg,
+      // always enable drawing by default - use Shift key to temporarily disable
       drawingEnabled: true,
-      // TODO add cfg
     });
 
     // initial annotations
