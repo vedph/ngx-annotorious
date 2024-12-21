@@ -6,6 +6,8 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 
 This is an OpenSeadragon Annotorious wrapper for Angular. Its core components derive from [@myrmidon/ngx-annotorious](../ngx-annotorious/README.md). A new OSD-specific directive is provided to be wired with these components.
 
+⚠️ THIS IS WORK IN PROGRESS!
+
 ## Setup
 
 1. add packages: in addition to [@myrmidon/ngx-annotorious](../ngx-annotorious/README.md), which contains the core components for both simple and OSD based annotations, this library requires the following packages (to avoid build warning, add `openseadragon` to your `angular.json`'s `allowedCommonJsDependencies`):
