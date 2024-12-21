@@ -4,18 +4,18 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.0.0.
 
+This is an OpenSeadragon Annotorious wrapper for Angular. Its core components derive from [@myrmidon/ngx-annotorious](../ngx-annotorious/README.md). A new OSD-specific directive is provided to be wired with these components.
+
 ## Setup
 
-In addition to `@myrmidon/ngx-annotorious`, which contains the core components for both simple and OSD based annotations, this library requires the following packages:
+1. add packages: in addition to [@myrmidon/ngx-annotorious](../ngx-annotorious/README.md), which contains the core components for both simple and OSD based annotations, this library requires the following packages (to avoid build warning, add `openseadragon` to your `angular.json`'s `allowedCommonJsDependencies`):
 
-```bash
-npm i openseadragon @annotorious/openseadragon
-npm i --save-dev --force @types/openseadragon
-```
+    ```bash
+    npm i openseadragon @annotorious/openseadragon
+    npm i --save-dev --force @types/openseadragon
+    ```
 
->To avoid build warning, add `openseadragon` to your `angular.json`'s `allowedCommonJsDependencies`.
-
-Also, you must copy OSD assets into the output `dist` folder during the build process. To this end, add to `angular.json` under your project's `architect/build/options/assets`:
+2. add to `angular.json` under your project's `architect/build/options/assets` the configuration to copy OSD assets into the output `dist` folder during the build process:
 
 ```json
 {
@@ -29,7 +29,7 @@ This will grab the image assets from the specified `node_modules` path, and copy
 
 ## Usage
 
-In your consumer component template, add an `img` wrapped in a `div`. The wrapper `div` will be the target of the OSD directive, e.g.:
+In your consumer component template, add an `img` wrapped in a `div`. The wrapper `div` (not the `img`!) will be the target of the OSD directive, e.g.:
 
 ```html
 <div
@@ -50,13 +50,13 @@ In your consumer component template, add an `img` wrapped in a `div`. The wrappe
 </div>
 ```
 
-Also setup a minimum height for OSD in your app's `styles.css`:
+Usually, you also setup some styles for this `div`:
 
 ```css
 div#osd-container {
-  min-height: 500px;
+  width: 100%;
+  background: #f0f0f0; /* Optional: to see container before image loads */
 }
 ```
 
-- [example images](https://github.com/openseadragon/example-images/tree/gh-pages) e.g. <https://github.com/openseadragon/example-images/blob/gh-pages/grand-canyon-landscape-overlooking.jpg>
-- [OSD in Angular](http://openseadragon.github.io/docs/): [issue](https://github.com/openseadragon/openseadragon/issues/1858)
+💡 You can find some [example images](https://github.com/openseadragon/example-images/tree/gh-pages) e.g. <https://github.com/openseadragon/example-images/blob/gh-pages/grand-canyon-landscape-overlooking.jpg>
