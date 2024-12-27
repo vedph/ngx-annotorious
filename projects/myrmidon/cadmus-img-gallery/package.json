@@ -17,7 +17,7 @@
   "peerDependencies": {
     "@angular/common": "^19.0.0",
     "@angular/core": "^19.0.0",
-    "@myrmidon/cadmus-img-annotator": "8.0.0"
+    "@myrmidon/ngx-annotorious": "0.0.1"
   },
   "dependencies": {
     "tslib": "^2.3.0"

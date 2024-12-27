@@ -77,8 +77,7 @@ export class ImgAnnotatorDirective implements AfterViewInit, OnDestroy {
   public readonly annotations = model<ImageAnnotation[]>([]);
 
   /**
-   * The selected annotation. TODO: When set, the annotator
-   * will highlight the annotation and open its editor.
+   * The selected annotation.
    */
   public readonly selectedAnnotation = input<ImageAnnotation>();
 
