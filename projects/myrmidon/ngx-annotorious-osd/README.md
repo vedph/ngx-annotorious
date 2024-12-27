@@ -61,4 +61,4 @@ div#osd-container {
 }
 ```
 
-💡 You can find some [example images](https://github.com/openseadragon/example-images/tree/gh-pages) e.g. <https://github.com/openseadragon/example-images/blob/gh-pages/grand-canyon-landscape-overlooking.jpg>
+💡 You can find some [example images](https://github.com/openseadragon/example-images/tree/gh-pages) at e.g. <https://github.com/openseadragon/example-images/blob/gh-pages/grand-canyon-landscape-overlooking.jpg>.
