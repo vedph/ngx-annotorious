@@ -18,7 +18,7 @@
     "@angular/common": "^19.0.0",
     "@angular/core": "^19.0.0",
     "@myrmidon/ngx-tools": "^1.0.0",
-    "@myrmidon/cadmus-img-annotator": "^8.0.0",
+    "@myrmidon/ngx-annotorious": "^0.0.2",
     "@myrmidon/cadmus-img-gallery": "^8.0.0"
   },
   "dependencies": {

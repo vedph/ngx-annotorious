@@ -9,3 +9,15 @@ To use the Annotorious wrapper you just need Annotorious, and no other dependenc
 - [Angular Annotorious](./projects/myrmidon/ngx-annotorious/README.md)
 - [Cadmus Image Gallery Brick](./projects/myrmidon/cadmus-img-gallery/README.md)
 - [IIIF support for Cadmus Image Gallery Brick](./projects/myrmidon/cadmus-img-gallery-iiif/README.md)
+
+```mermaid
+graph LR;
+  ngx-annotorious --> annotorious
+  ngx-annotorious-osd --> annotorious
+  ngx-annotorious-osd --> annotorious/openseadragon
+  ngx-annotorious-osd --> ngx-annotorious
+  img-gallery --> ngx-annotorious
+  img-gallery-iiif --> ngx-tools
+  img-gallery-iiif --> ngx-annotorious
+  img-gallery-iiif --> img-gallery
+```
