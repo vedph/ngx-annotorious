@@ -17,7 +17,7 @@ To use the Annotorious wrapper you just need Annotorious, and no other dependenc
 2. install packages with `npm i`.
 3. build libraries with `npm run build-lib`.
 4. run with `ng serve`.
-5. in the homepage, add annotations and play with them. Look at the console for more information from logging. Use the menus to access other functionalities.
+5. in the homepage, add annotations and play with them. In this case, the custom model linked to the annotation is just a string, so the popup dialog allows you to enter it. Look at the console for more information from logging. Use the menus to access other functionalities.
 
 ## Dependencies
 
