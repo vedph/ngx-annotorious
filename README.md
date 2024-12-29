@@ -6,9 +6,19 @@ This workspace contains a self-contained Angular wrapper for Annotorious V3, plu
 
 To use the Annotorious wrapper you just need Annotorious, and no other dependency. Cadmus libraries are in this workspace for practical reasons, but also provide an example for using the library.
 
-- [Angular Annotorious](./projects/myrmidon/ngx-annotorious/README.md)
+- [Angular Annotorious wrapper](./projects/myrmidon/ngx-annotorious/README.md)
 - [Cadmus Image Gallery Brick](./projects/myrmidon/cadmus-img-gallery/README.md)
 - [IIIF support for Cadmus Image Gallery Brick](./projects/myrmidon/cadmus-img-gallery-iiif/README.md)
+
+## Quick Start
+
+1. clone or download this repository.
+2. install packages with `npm i`.
+3. build libraries with `npm run build-lib`.
+4. run with `ng serve`.
+5. in the homepage, add annotations and play with them. Look at the console for more information from logging. Use the menus to access other functionalities.
+
+## Dependencies
 
 ```mermaid
 graph LR;
