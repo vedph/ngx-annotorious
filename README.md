@@ -35,6 +35,12 @@ graph LR;
 
 ## History
 
+### 0.0.3
+
+- 2025-01-24:
+  - updated ngx-annotorious and Angular.
+  - added Docker support.
+
 ### 0.0.2
 
 - 2024-12-27: first package.
