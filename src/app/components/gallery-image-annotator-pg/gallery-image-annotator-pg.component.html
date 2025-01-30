@@ -1,4 +1,5 @@
 <mat-tab-group [(selectedIndex)]="tabIndex">
+  <!-- annotator -->
   <mat-tab label="Annotator">
     <div id="container">
       @if (image()) {
@@ -49,6 +50,7 @@
       </div>
     </div>
   </mat-tab>
+  <!-- gallery -->
   <mat-tab label="Gallery">
     <cadmus-gallery-list
       [entries]="entries"

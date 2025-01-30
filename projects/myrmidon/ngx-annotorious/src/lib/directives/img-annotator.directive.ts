@@ -166,7 +166,7 @@ export class ImgAnnotatorDirective implements AfterViewInit, OnDestroy {
   constructor(private _elementRef: ElementRef<HTMLImageElement>) {
     // when config changes, recreate annotator
     effect(() => {
-      console.log('annotator config', this.config());
+      console.log('Anndir: annotator config', this.config());
       this._ann?.destroy();
       setTimeout(() => {
         this.initAnnotator();
@@ -175,13 +175,13 @@ export class ImgAnnotatorDirective implements AfterViewInit, OnDestroy {
 
     // when tool changes, select it in the annotator
     effect(() => {
-      console.log('tool', this.tool());
+      console.log('Anndir: tool', this.tool());
       this._ann?.setDrawingTool(this.tool());
     });
 
     // when annotations are changed, update the annotator
     effect(() => {
-      console.log('annotations', this.annotations());
+      console.log('Anndir: annotations', this.annotations());
       const annotations = this.annotations();
       // clear or set annotations
       if (!annotations?.length) {
@@ -193,7 +193,7 @@ export class ImgAnnotatorDirective implements AfterViewInit, OnDestroy {
 
     // when selected annotation changes, select it in the annotator
     effect(() => {
-      console.log('selectedAnnotation', this.selectedAnnotation());
+      console.log('Anndir: selectedAnnotation', this.selectedAnnotation());
       this._ann?.setSelected(this.selectedAnnotation()?.id);
     });
   }
@@ -204,7 +204,7 @@ export class ImgAnnotatorDirective implements AfterViewInit, OnDestroy {
     const cfg = this.config() || DEFAULT_ANNOTORIOUS_CONFIG;
     cfg.image = this._elementRef.nativeElement;
     if (!cfg.image) {
-      console.error('No image for annotator');
+      console.error('Anndir: no image for annotator');
       this._ann = undefined;
       return;
     }
@@ -226,47 +226,47 @@ export class ImgAnnotatorDirective implements AfterViewInit, OnDestroy {
     this._ann.on(
       'clickAnnotation',
       (annotation: ImageAnnotation, originalEvent: PointerEvent) => {
-        console.log('clickAnnotation', annotation, originalEvent);
+        console.log('Anndir: clickAnnotation', annotation, originalEvent);
         this.clickAnnotation.emit({ annotation, originalEvent });
       }
     );
 
     // createAnnotation
     this._ann.on('createAnnotation', (annotation: ImageAnnotation) => {
-      console.log('createAnnotation', annotation);
+      console.log('Anndir: createAnnotation', annotation);
       this.createAnnotation.emit(annotation);
     });
     // deleteAnnotation
     this._ann.on('deleteAnnotation', (annotation: ImageAnnotation) => {
-      console.log('deleteAnnotation', annotation);
+      console.log('Anndir: deleteAnnotation', annotation);
       this.deleteAnnotation.emit(annotation);
     });
     // mouseEnterAnnotation
     this._ann.on('mouseEnterAnnotation', (annotation: ImageAnnotation) => {
-      console.log('mouseEnterAnnotation', annotation);
+      console.log('Anndir: mouseEnterAnnotation', annotation);
       this.mouseEnterAnnotation.emit(annotation);
     });
     // mouseLeaveAnnotation
     this._ann.on('mouseLeaveAnnotation', (annotation: ImageAnnotation) => {
-      console.log('mouseLeaveAnnotation', annotation);
+      console.log('Anndir: mouseLeaveAnnotation', annotation);
       this.mouseLeaveAnnotation.emit(annotation);
     });
     // selectionChanged
     this._ann.on('selectionChanged', (annotations: ImageAnnotation[]) => {
-      console.log('selectionChanged', annotations);
+      console.log('Anndir: selectionChanged', annotations);
       this.selectionChanged.emit(annotations[0]);
     });
     // updateAnnotation
     this._ann.on(
       'updateAnnotation',
       (updated: ImageAnnotation, previous: ImageAnnotation) => {
-        console.log('updateAnnotation', updated, previous);
+        console.log('Anndir: updateAnnotation', updated, previous);
         this.updateAnnotation.emit({ updated, previous });
       }
     );
     // viewportIntersect
     this._ann.on('viewportIntersect', (annotations: ImageAnnotation[]) => {
-      console.log('viewportIntersect', annotations);
+      console.log('Anndir: viewportIntersect', annotations);
       this.viewportIntersect.emit(annotations);
     });
 

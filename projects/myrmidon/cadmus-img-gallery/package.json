@@ -1,6 +1,6 @@
 {
   "name": "@myrmidon/cadmus-img-gallery",
-  "version": "8.0.1",
+  "version": "8.0.2",
   "description": "Cadmus - minimalist image gallery.",
   "keywords": [
     "Cadmus",
@@ -17,7 +17,7 @@
   "peerDependencies": {
     "@angular/common": "^19.0.0",
     "@angular/core": "^19.0.0",
-    "@myrmidon/ngx-annotorious": "0.0.2"
+    "@myrmidon/ngx-annotorious": "0.0.4"
   },
   "dependencies": {
     "tslib": "^2.3.0"

@@ -35,9 +35,11 @@ graph LR;
 
 ## History
 
-- 2025-01-30:
+- 2025-01-30 (affecting `@myrmidon/cadmus-img-gallery` and `@myrmidon/ngx-annotorious`):
   - removed `priority` from gallery list component HTML template.
   - completed migration to signals.
+  - better handling of image optimizer in gallery.
+  - more detailed logging.
 
 ### 0.0.3
 

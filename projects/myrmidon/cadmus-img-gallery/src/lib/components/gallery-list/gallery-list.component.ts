@@ -1,4 +1,13 @@
-import { Component, input, OnDestroy, output } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  input,
+  OnDestroy,
+  output,
+  QueryList,
+  ViewChildren,
+} from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Observable, Subscription, distinctUntilChanged } from 'rxjs';
 
@@ -42,11 +51,15 @@ import { GalleryFilterComponent } from '../gallery-filter/gallery-filter.compone
     GalleryFilterComponent,
   ],
 })
-export class GalleryListComponent implements OnDestroy {
+export class GalleryListComponent implements OnDestroy, AfterViewInit {
   private _sub?: Subscription;
+  private _observer: IntersectionObserver | null = null;
 
   public page$: Observable<DataPage<GalleryImage>>;
   public loading$: Observable<boolean>;
+
+  @ViewChildren('imageElement') imageElements!: QueryList<ElementRef>; // Use template ref
+  lcpIndex: number | null = null;
 
   /**
    * The entries used to represent image gallery metadata filters.
@@ -78,8 +91,46 @@ export class GalleryListComponent implements OnDestroy {
       .subscribe((o) => (this.options = o));
   }
 
+  ngAfterViewInit() {
+    this._observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const element = entry.target as HTMLElement;
+          const index = this.imageElements
+            .toArray()
+            .findIndex((el) => el.nativeElement === element);
+
+          // only set once and check if found
+          if (this.lcpIndex === null && index !== -1) {
+            this.lcpIndex = index;
+            // stop observing other elements after LCP is found
+            this._observer?.disconnect();
+          }
+        }
+      });
+    });
+
+    // observe changes in the QueryList
+    this.imageElements.changes.subscribe(() => {
+      this.imageElements.forEach((element) => {
+        this._observer?.observe(element.nativeElement);
+      });
+    });
+  }
+
+  public isLCP(index: number): boolean {
+    return this.lcpIndex === index;
+  }
+
+  public onImageLoad(event: Event) {
+    const img = event.target as HTMLImageElement;
+    // ensure height is auto after load
+    img.style.height = 'auto';
+  }
+
   public ngOnDestroy(): void {
     this._sub?.unsubscribe();
+    this._observer?.disconnect();
   }
 
   public onPageChange(event: PageEvent): void {

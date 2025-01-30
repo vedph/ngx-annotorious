@@ -6,15 +6,35 @@
     <!-- frame -->
     <div id="frame">
       <!-- image -->
-      @for (img of page.items; track img) {
+      @for (img of page.items; let i = $index; track img;) {
       <div>
         <figure>
-          <img
-            alt="{{ img.title }}"
-            [ngSrc]="img.uri"
-            [width]="options.width"
-            [height]="options.height"
-          />
+          <!-- TODO: use width and height from the image model, not from options -->
+          <ng-container *ngIf="i === lcpIndex; else notLcp">
+            <img
+              #imageElement
+              [ngSrc]="img.uri"
+              priority
+              alt="{{ img.title }}"
+              [style.width.px]="options.width"
+              [style.height]="'auto'"
+              [width]="options.width"
+              [height]="options.height"
+              (load)="onImageLoad($event)"
+            />
+          </ng-container>
+          <ng-template #notLcp>
+            <img
+              #imageElement
+              [ngSrc]="img.uri"
+              alt="{{ img.title }}"
+              [style.width.px]="options.width"
+              [style.height]="'auto'"
+              [width]="options.width"
+              [height]="options.height"
+              (load)="onImageLoad($event)"
+            />
+          </ng-template>
           <div class="form-row">
             <figcaption>{{ img.title }}</figcaption>
             <button type="button" mat-icon-button (click)="pickImage(img)">

@@ -1,4 +1,13 @@
-import { Directive, effect, Inject, input, output } from '@angular/core';
+import {
+  Directive,
+  effect,
+  Inject,
+  input,
+  OnDestroy,
+  output,
+} from '@angular/core';
+import { combineLatest, debounceTime, Subject, Subscription } from 'rxjs';
+
 import {
   MAT_DIALOG_DEFAULT_OPTIONS,
   MatDialog,
@@ -14,8 +23,12 @@ import { ImgAnnotationList, ListAnnotation } from './img-annotation-list';
  * The inner list core is lazily instantiated when these properties are set.
  */
 @Directive({ standalone: true })
-export abstract class ImgAnnotationListComponent<T> {
+export abstract class ImgAnnotationListComponent<T> implements OnDestroy {
   private _list?: ImgAnnotationList<T>;
+  private readonly _sub: Subscription;
+  private readonly annotatorSubject = new Subject<any>();
+  private readonly editorComponentSubject = new Subject<any>();
+  private readonly imageSubject = new Subject<GalleryImage>();
 
   /**
    * The annotations list empowering this component.
@@ -60,9 +73,35 @@ export abstract class ImgAnnotationListComponent<T> {
     @Inject(MAT_DIALOG_DEFAULT_OPTIONS) public dlgConfig: MatDialogConfig
   ) {
     // when annotator or editor component or image change, init list
+    // after a debounce time, to avoid multiple init calls
+    this._sub = combineLatest([
+      this.annotatorSubject.asObservable(),
+      this.editorComponentSubject.asObservable(),
+      this.imageSubject.asObservable(),
+    ])
+      .pipe(debounceTime(500))
+      .subscribe(() => {
+        this.initList(this.annotator(), this.editorComponent(), this.image());
+      });
+
+    // when annotator or editor component or image change, init list
+    // effect(() => {
+    //   this.initList(this.annotator(), this.editorComponent(), this.image());
+    // });
+
     effect(() => {
-      this.initList(this.annotator(), this.editorComponent(), this.image());
+      this.annotatorSubject.next(this.annotator());
     });
+    effect(() => {
+      this.editorComponentSubject.next(this.editorComponent());
+    });
+    effect(() => {
+      this.imageSubject.next(this.image());
+    });
+  }
+
+  public ngOnDestroy(): void {
+    this._sub.unsubscribe();
   }
 
   protected initList(annotator: any, editor: any, image?: GalleryImage): void {
@@ -74,7 +113,7 @@ export abstract class ImgAnnotationListComponent<T> {
         this.dlgConfig
       );
       this._list.image = image;
-      console.log('list init', this._list);
+      console.log('Annotations list component: init', this._list);
       this.listInit.emit(this._list);
     }
   }

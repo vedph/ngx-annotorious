@@ -81,6 +81,7 @@ export class ImgAnnotatorToolbarComponent implements OnInit, OnDestroy {
 
     // whenever form value changes, emit toolChange
     this._sub = this.form.valueChanges.subscribe((value) => {
+      console.log('Annotator bar: tool change', value.tool);
       this.toolChange.emit(value.tool);
     });
   }
