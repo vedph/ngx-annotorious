@@ -9,12 +9,11 @@ import {
 
 import {
   Component,
-  EventEmitter,
+  effect,
   Inject,
-  Input,
+  model,
   OnDestroy,
   OnInit,
-  Output,
 } from '@angular/core';
 import { Subscription, take } from 'rxjs';
 
@@ -81,8 +80,8 @@ export interface MyAnnotationPayload {
 })
 export class GalleryImageAnnotatorPgComponent implements OnInit, OnDestroy {
   private _sub?: Subscription;
-  private _image?: GalleryImage;
   private _list?: ImgAnnotationList<MyAnnotationPayload>;
+  private _dropNextInput?: boolean;
 
   public entries: ThesaurusEntry[];
   public annotator?: any;
@@ -97,41 +96,14 @@ export class GalleryImageAnnotatorPgComponent implements OnInit, OnDestroy {
   /**
    * The gallery image to annotate.
    */
-  @Input()
-  public get image(): GalleryImage | undefined | null {
-    return this._image;
-  }
-  public set image(value: GalleryImage | undefined | null) {
-    if (this._image === value) {
-      return;
-    }
-    this._image = value || undefined;
-    // reset annotations if image URI changed
-    if (this._image?.uri !== value?.uri) {
-      this._list?.clearAnnotations();
-    }
-    // switch to image tab
-    setTimeout(() => {
-      this.tabIndex = value ? 0 : 1;
-    });
-  }
+  public readonly image = model<GalleryImage>();
 
   /**
    * The annotations being edited.
    */
-  @Input()
-  public get annotations(): ListAnnotation<MyAnnotationPayload>[] {
-    return this._list?.getAnnotations() || [];
-  }
-  public set annotations(value: ListAnnotation<MyAnnotationPayload>[]) {
-    this._list?.setAnnotations(value);
-  }
-
-  /**
-   * Emitted whenever annotations change.
-   */
-  @Output()
-  public annotationsChange: EventEmitter<ListAnnotation<MyAnnotationPayload>[]>;
+  public readonly annotations = model<ListAnnotation<MyAnnotationPayload>[]>(
+    []
+  );
 
   constructor(
     public dialog: MatDialog,
@@ -141,10 +113,6 @@ export class GalleryImageAnnotatorPgComponent implements OnInit, OnDestroy {
     private _options: GalleryOptionsService,
     formBuilder: FormBuilder
   ) {
-    this.annotationsChange = new EventEmitter<
-      ListAnnotation<MyAnnotationPayload>[]
-    >();
-
     // mock filter entries
     this.entries = [
       {
@@ -163,10 +131,35 @@ export class GalleryImageAnnotatorPgComponent implements OnInit, OnDestroy {
       json: this.json,
       frozen: this.frozen,
     });
+
+    effect(() => {
+      this.onGalleryImageSet(this.image());
+    });
+
+    effect(() => {
+      if (this._dropNextInput) {
+        this._dropNextInput = false;
+        return;
+      }
+      const annotations = this.annotations();
+      console.log('Annotations changed', annotations);
+      this._list?.setAnnotations(annotations);
+    });
+  }
+
+  private onGalleryImageSet(image?: GalleryImage): void {
+    // reset annotations if image URI changed
+    if (this.image()?.uri !== image?.uri) {
+      this._list?.clearAnnotations();
+    }
+    // switch to image tab
+    setTimeout(() => {
+      this.tabIndex = image ? 0 : 1;
+    });
   }
 
   public ngOnInit(): void {
-    if (!this._image) {
+    if (!this.image()) {
       this.tabIndex = 1;
     }
   }
@@ -191,8 +184,9 @@ export class GalleryImageAnnotatorPgComponent implements OnInit, OnDestroy {
     // emit annotations whenever they change
     this._sub?.unsubscribe();
     this._sub = this._list.annotations$.subscribe((annotations) => {
-      if (this._image) {
-        this.annotationsChange.emit(annotations);
+      if (this.image()) {
+        this._dropNextInput = true;
+        this.annotations.set(annotations);
         if (!this.frozen.value) {
           this.json.setValue(JSON.stringify(annotations, null, 2));
         }
@@ -240,7 +234,8 @@ export class GalleryImageAnnotatorPgComponent implements OnInit, OnDestroy {
       .getImage(image.id, this._options.get())
       .pipe(take(1))
       .subscribe((image) => {
-        this.image = image!;
+        console.log('Image picked', image);
+        this.image.set(image!);
       });
     this.tabIndex = 1;
   }

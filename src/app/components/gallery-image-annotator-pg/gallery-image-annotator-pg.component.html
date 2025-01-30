@@ -1,7 +1,7 @@
 <mat-tab-group [(selectedIndex)]="tabIndex">
   <mat-tab label="Annotator">
     <div id="container">
-      @if (image) {
+      @if (image()) {
       <div id="image">
         <div>
           <img-annotator-toolbar (toolChange)="onToolChange($event)" />
@@ -15,14 +15,14 @@
             (annotatorInit)="onAnnotatorInit($event)"
             [tool]="tool"
             [additionalTools]="['circle', 'ellipse', 'freehand']"
-            [src]="image!.uri"
+            [src]="image()!.uri"
           />
         </div>
       </div>
       }
       <div id="list">
         <app-my-img-annotation-list
-          [image]="image!"
+          [image]="image()!"
           [annotator]="annotator"
           [editorComponent]="editorComponent"
           (listInit)="onListInit($event)"

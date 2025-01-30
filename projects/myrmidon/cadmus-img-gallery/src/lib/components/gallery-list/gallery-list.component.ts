@@ -1,10 +1,4 @@
-import {
-  Component,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  Output,
-} from '@angular/core';
+import { Component, input, OnDestroy, output } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Observable, Subscription, distinctUntilChanged } from 'rxjs';
 
@@ -60,14 +54,12 @@ export class GalleryListComponent implements OnDestroy {
    * If not set, users will be allowed to freely type a name rather
    * than picking it from a list.
    */
-  @Input()
-  public entries: ThesaurusEntry[] | undefined;
+  public readonly entries = input<ThesaurusEntry[]>();
 
   /**
    * Emitted when an image is picked.
    */
-  @Output()
-  public imagePick: EventEmitter<GalleryImage>;
+  public readonly imagePick = output<GalleryImage>();
 
   public options: GalleryOptions;
 
@@ -77,7 +69,6 @@ export class GalleryListComponent implements OnDestroy {
   ) {
     this.page$ = _repository.page$;
     this.loading$ = _repository.loading$;
-    this.imagePick = new EventEmitter<GalleryImage>();
 
     this.options = options.get();
     // update options when options change

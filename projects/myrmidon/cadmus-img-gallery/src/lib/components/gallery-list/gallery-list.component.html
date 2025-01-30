@@ -1,6 +1,6 @@
 <div>
   @if (loading$ | async) {
-  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  <mat-progress-bar mode="indeterminate" />
   } @if (page$ | async; as page) {
   <div id="container">
     <!-- frame -->
@@ -14,7 +14,6 @@
             [ngSrc]="img.uri"
             [width]="options.width"
             [height]="options.height"
-            priority
           />
           <div class="form-row">
             <figcaption>{{ img.title }}</figcaption>
@@ -33,7 +32,7 @@
     </div>
     <!-- filter -->
     <div id="filter">
-      <cadmus-gallery-filter [entries]="entries || []"></cadmus-gallery-filter>
+      <cadmus-gallery-filter [entries]="entries() || []" />
     </div>
     <!-- paginator -->
     <div id="paginator" class="form-row">
@@ -52,7 +51,7 @@
         [pageSizeOptions]="[2, 10, 20, 30, 50]"
         [showFirstLastButtons]="true"
         (page)="onPageChange($event)"
-      ></mat-paginator>
+      />
     </div>
   </div>
   }

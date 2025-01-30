@@ -35,6 +35,10 @@ graph LR;
 
 ## History
 
+- 2025-01-30:
+  - removed `priority` from gallery list component HTML template.
+  - completed migration to signals.
+
 ### 0.0.3
 
 - 2025-01-24:
