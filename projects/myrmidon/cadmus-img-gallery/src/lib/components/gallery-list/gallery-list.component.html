@@ -1,78 +1,77 @@
 <div>
   @if (loading$ | async) {
-  <mat-progress-bar mode="indeterminate" />
-  } @if (page$ | async; as page) {
-  <div id="container">
-    <!-- frame -->
-    <div id="frame">
-      <!-- image -->
-      @for (img of page.items; let i = $index; track img;) {
-      <div>
-        <figure>
-          <!-- TODO: use width and height from the image model, not from options -->
-          <ng-container *ngIf="i === lcpIndex; else notLcp">
-            <img
-              #imageElement
-              [ngSrc]="img.uri"
-              priority
-              alt="{{ img.title }}"
-              [style.width.px]="options.width"
-              [style.height]="'auto'"
-              [width]="options.width"
-              [height]="options.height"
-              (load)="onImageLoad($event)"
-            />
-          </ng-container>
-          <ng-template #notLcp>
-            <img
-              #imageElement
-              [ngSrc]="img.uri"
-              alt="{{ img.title }}"
-              [style.width.px]="options.width"
-              [style.height]="'auto'"
-              [width]="options.width"
-              [height]="options.height"
-              (load)="onImageLoad($event)"
-            />
-          </ng-template>
-          <div class="form-row">
-            <figcaption>{{ img.title }}</figcaption>
-            <button type="button" mat-icon-button (click)="pickImage(img)">
-              <mat-icon class="mat-primary">check_circle</mat-icon>
+    <mat-progress-bar mode="indeterminate" />
+    } @if (page$ | async; as page) {
+    <div id="container">
+      <!-- frame -->
+      <div id="frame">
+        <!-- image -->
+        @for (img of page.items; let i = $index; track img;) {
+          <div>
+            <figure>
+              <!-- TODO: use width and height from the image model, not from options -->
+              @if (i === lcpIndex) {
+                <img
+                  #imageElement
+                  [ngSrc]="img.uri"
+                  priority
+                  alt="{{ img.title }}"
+                  [style.width.px]="options.width"
+                  [style.height]="'auto'"
+                  [width]="options.width"
+                  [height]="options.height"
+                  (load)="onImageLoad($event)"
+                  />
+                } @else {
+                  <img
+                    #imageElement
+                    [ngSrc]="img.uri"
+                    alt="{{ img.title }}"
+                    [style.width.px]="options.width"
+                    [style.height]="'auto'"
+                    [width]="options.width"
+                    [height]="options.height"
+                    (load)="onImageLoad($event)"
+                    />
+                  }
+                  <div class="form-row">
+                    <figcaption>{{ img.title }}</figcaption>
+                    <button type="button" mat-icon-button (click)="pickImage(img)">
+                      <mat-icon class="mat-primary">check_circle</mat-icon>
+                    </button>
+                  </div>
+                  @if (img.description) {
+                    <div class="dsc" [style.width]="options.width + 'px'">
+                      {{ img.description }}
+                    </div>
+                  }
+                </figure>
+              </div>
+            }
+          </div>
+          <!-- filter -->
+          <div id="filter">
+            <cadmus-gallery-filter [entries]="entries() || []" />
+          </div>
+          <!-- paginator -->
+          <div id="paginator" class="form-row">
+            <button
+              type="button"
+              mat-icon-button
+              matTooltip="Clear items cache"
+              (click)="reset()"
+              >
+              <mat-icon class="mat-warn">autorenew</mat-icon>
             </button>
+            <mat-paginator
+              [length]="page.total"
+              [pageIndex]="page.pageNumber - 1"
+              [pageSize]="page.pageSize"
+              [pageSizeOptions]="[2, 10, 20, 30, 50]"
+              [showFirstLastButtons]="true"
+              (page)="onPageChange($event)"
+              />
+            </div>
           </div>
-          @if (img.description) {
-          <div class="dsc" [style.width]="options.width + 'px'">
-            {{ img.description }}
-          </div>
-          }
-        </figure>
+        }
       </div>
-      }
-    </div>
-    <!-- filter -->
-    <div id="filter">
-      <cadmus-gallery-filter [entries]="entries() || []" />
-    </div>
-    <!-- paginator -->
-    <div id="paginator" class="form-row">
-      <button
-        type="button"
-        mat-icon-button
-        matTooltip="Clear items cache"
-        (click)="reset()"
-      >
-        <mat-icon class="mat-warn">autorenew</mat-icon>
-      </button>
-      <mat-paginator
-        [length]="page.total"
-        [pageIndex]="page.pageNumber - 1"
-        [pageSize]="page.pageSize"
-        [pageSizeOptions]="[2, 10, 20, 30, 50]"
-        [showFirstLastButtons]="true"
-        (page)="onPageChange($event)"
-      />
-    </div>
-  </div>
-  }
-</div>

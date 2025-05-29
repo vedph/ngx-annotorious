@@ -1,6 +1,6 @@
 {
   "name": "@myrmidon/ngx-annotorious",
-  "version": "0.0.4",
+  "version": "1.0.0",
   "description": "Annotorious integration for Angular.",
   "keywords": [
     "Annotorious",
@@ -15,9 +15,9 @@
     "name": "Daniele Fusi"
   },
   "peerDependencies": {
-    "@angular/common": "^19.0.0",
-    "@angular/core": "^19.0.0",
-    "@annotorious/annotorious": "^3.1.3"
+    "@angular/common": "^20.0.0",
+    "@angular/core": "^20.0.0",
+    "@annotorious/annotorious": "^3.4.2"
   },
   "dependencies": {
     "tslib": "^2.3.0"

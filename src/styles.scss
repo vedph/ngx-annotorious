@@ -1,6 +1,7 @@
 @use "@angular/material" as mat;
 
-@include mat.core();
+@include mat.elevation-classes();
+@include mat.app-background();
 
 $light-theme: mat.define-theme(
   (
@@ -54,7 +55,7 @@ body {
 }
 
 mat-icon.mat-accent, mat-icon.mat-primary {
-  color: var(--mdc-filled-text-field-focus-label-text-color) !important;
+  color: var(--mat-form-field-filled-focus-label-text-color) !important;
 }
 mat-icon.mat-error, mat-icon.mat-warn {
   color: var(--mat-form-field-error-focus-trailing-icon-color) !important;

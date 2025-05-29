@@ -35,6 +35,8 @@ graph LR;
 
 ## History
 
+### 1.0.0
+
 - 2025-05-25: updated Angular and packages.
 - 2025-01-30 (affecting `@myrmidon/cadmus-img-gallery` and `@myrmidon/ngx-annotorious`):
   - removed `priority` from gallery list component HTML template.
