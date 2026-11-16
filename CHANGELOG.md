@@ -158,3 +158,24 @@ There are no unit tests for this library, as OpenSeadragon requires a real brows
 4. Replace `GalleryOptionsService.select().subscribe(...)` with an `effect`/`computed` on `options()`.
 5. Pass thesaurus entries to `cadmus-gallery-list` as before: `ThesaurusEntry` is structurally compatible with `GalleryFilterEntry`.
 6. Replace literal colors in the custom list styles with `--mat-sys-*` tokens.
+
+See [CHANGELOG.md](./CHANGELOG.md). The current release (Angular 22, zoneless, signals) has breaking changes: see its migration checklist.
+
+## 1.0.0
+
+- 2025-05-25: updated Angular and packages.
+- 2025-01-30 (affecting `@myrmidon/cadmus-img-gallery` and `@myrmidon/ngx-annotorious`):
+  - removed `priority` from gallery list component HTML template.
+  - completed migration to signals.
+  - better handling of image optimizer in gallery.
+  - more detailed logging.
+
+## 0.0.3
+
+- 2025-01-24:
+  - updated ngx-annotorious and Angular.
+  - added Docker support.
+
+## 0.0.2
+
+- 2024-12-27: first package.
