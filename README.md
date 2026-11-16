@@ -34,26 +34,3 @@ graph LR;
   img-gallery-iiif --> ngx-annotorious
   img-gallery-iiif --> img-gallery
 ```
-
-## History
-
-See [CHANGELOG.md](./CHANGELOG.md). The current release (Angular 22, zoneless, signals) has breaking changes: see its migration checklist.
-
-### 1.0.0
-
-- 2025-05-25: updated Angular and packages.
-- 2025-01-30 (affecting `@myrmidon/cadmus-img-gallery` and `@myrmidon/ngx-annotorious`):
-  - removed `priority` from gallery list component HTML template.
-  - completed migration to signals.
-  - better handling of image optimizer in gallery.
-  - more detailed logging.
-
-### 0.0.3
-
-- 2025-01-24:
-  - updated ngx-annotorious and Angular.
-  - added Docker support.
-
-### 0.0.2
-
-- 2024-12-27: first package.
