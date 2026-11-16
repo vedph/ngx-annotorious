@@ -1,0 +1,46 @@
+@if (annotations().length) {
+<ol class="ann-list" aria-label="annotations">
+  @for (a of annotations(); track a.id; let i = $index) {
+  <li class="ann-item" [class.selected]="selectedIndex() === i">
+    <button
+      type="button"
+      class="ann-label"
+      [attr.aria-pressed]="selectedIndex() === i"
+      (click)="toggleSelection(a)"
+    >
+      <span class="ann-ordinal">{{ i + 1 }}</span>
+      <span class="ann-text">
+        <span class="ann-summary">{{ annotationToString()(a) || "-" }}</span>
+        @if (showIds()) {
+        <span class="ann-id">{{ a.id }}</span>
+        }
+      </span>
+    </button>
+    <span class="ann-actions">
+      <button
+        type="button"
+        mat-icon-button
+        class="mat-primary"
+        matTooltip="Edit annotation"
+        aria-label="edit annotation"
+        (click)="editAnnotationAt(i)"
+      >
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button
+        type="button"
+        mat-icon-button
+        class="mat-warn"
+        matTooltip="Remove annotation"
+        aria-label="remove annotation"
+        (click)="removeAnnotationAt(i)"
+      >
+        <mat-icon>delete</mat-icon>
+      </button>
+    </span>
+  </li>
+  }
+</ol>
+} @else {
+<p class="ann-empty">{{ emptyMessage() }}</p>
+}

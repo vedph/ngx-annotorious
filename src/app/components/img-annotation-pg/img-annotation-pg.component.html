@@ -1,48 +1,60 @@
-<mat-card appearance="outlined">
-  <mat-card-header>
-    <mat-card-title>
-      <h2>Image Annotator</h2>
-    </mat-card-title>
-  </mat-card-header>
-  <mat-card-content>
-    <div id="container">
-      <div id="image">
-        <div id="toolbar">
-          <img-annotator-toolbar (toolChange)="onToolChange($event)" />
-        </div>
-        <div>
+<div class="page">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Image Annotator</mat-card-title>
+      <mat-card-subtitle>
+        Draw a shape on the image to create an annotation.
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="annotator">
+        <div class="image">
+          <div class="form-row">
+            <img-annotator-toolbar
+              [(tool)]="tool"
+              [disabled]="!drawingEnabled()"
+            />
+            <mat-slide-toggle
+              [checked]="drawingEnabled()"
+              (change)="drawingEnabled.set($event.checked)"
+              >drawing</mat-slide-toggle
+            >
+          </div>
           <img
-            alt="image"
-            imgAnnotator
-            (createAnnotation)="onCreateAnnotation($event)"
-            (deleteAnnotation)="onDeleteAnnotation($event)"
-            (clickAnnotation)="onClickAnnotation($event)"
-            (selectionChanged)="onSelectionChanged($event)"
-            (annotatorInit)="onAnnotatorInit($event)"
-            [tool]="tool"
-            [additionalTools]="['circle', 'ellipse', 'freehand']"
+            alt="sample"
             src="sample.jpg"
+            imgAnnotator
+            #ann="imgAnnotator"
+            [tool]="tool()"
+            [drawingEnabled]="drawingEnabled()"
+            (clickAnnotation)="onClickAnnotation($event)"
           />
         </div>
+        <div class="list">
+          <ann-basic-img-annotation-list
+            [annotator]="ann.annotator()"
+            [editorComponent]="editor"
+            [image]="image"
+            [showIds]="true"
+            (listInit)="list.set($any($event))"
+          />
+          @if (lastClick(); as id) {
+          <p class="muted">last clicked: {{ id }}</p>
+          }
+        </div>
       </div>
-      <div id="list">
-        <app-my-img-annotation-list
-          [image]="image"
-          [annotator]="annotator"
-          [editorComponent]="editor"
-          (listInit)="onListInit($event)"
-        />
-      </div>
-    </div>
-  </mat-card-content>
-  <div>
-    <button
-      type="button"
-      mat-flat-button
-      class="mat-warn"
-      (click)="clearAnnotations()"
-    >
-      clear
-    </button>
-  </div>
-</mat-card>
+    </mat-card-content>
+    <mat-card-actions align="end">
+      <button
+        type="button"
+        mat-flat-button
+        class="mat-warn"
+        [disabled]="!list()?.annotations()?.length"
+        (click)="clearAnnotations()"
+      >
+        <mat-icon>delete_sweep</mat-icon>
+        clear
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>

@@ -1,120 +1,174 @@
 import {
+  computed,
+  DestroyRef,
   Directive,
   effect,
-  Inject,
+  inject,
   input,
-  OnDestroy,
   output,
+  signal,
+  untracked,
 } from '@angular/core';
-import { combineLatest, debounceTime, Subject, Subscription } from 'rxjs';
-
+import { ComponentType } from '@angular/cdk/portal';
 import {
   MAT_DIALOG_DEFAULT_OPTIONS,
   MatDialog,
   MatDialogConfig,
 } from '@angular/material/dialog';
 
-import { GalleryImage } from '../../directives/img-annotator.directive';
-import { ImgAnnotationList, ListAnnotation } from './img-annotation-list';
+import { GalleryImage } from '../../models';
+import {
+  ImgAnnotationList,
+  ListAnnotation,
+  ListAnnotator,
+} from './img-annotation-list';
+
+/**
+ * The default function used to summarize a list annotation: this is the
+ * value of its first body, or its ID.
+ */
+export function defaultAnnotationToString(
+  annotation: ListAnnotation<unknown>
+): string | null {
+  return annotation?.value?.bodies?.[0]?.value || annotation?.id || null;
+}
 
 /**
  * Base for image annotations list components. Derive your component from
- * this, wiring its input annotator, editorComponent and image properties.
- * The inner list core is lazily instantiated when these properties are set.
+ * this, and bind its `annotator`, `editorComponent` and `image` inputs.
+ * The inner `ImgAnnotationList` is created as soon as both the annotator
+ * and the editor component are available; if the annotator is later
+ * replaced, the same list is attached to the new one, so that its
+ * annotations are preserved.
+ *
+ * Your template can use the `annotations`, `selectedAnnotation` and
+ * `selectedIndex` signals, and the protected action methods.
  */
-@Directive({ standalone: true })
-export abstract class ImgAnnotationListComponent<T> implements OnDestroy {
-  private _list?: ImgAnnotationList<T>;
-  private readonly _sub: Subscription;
-  private readonly annotatorSubject = new Subject<any>();
-  private readonly editorComponentSubject = new Subject<any>();
-  private readonly imageSubject = new Subject<GalleryImage>();
+@Directive()
+export abstract class ImgAnnotationListComponent<T> {
+  private readonly _list = signal<ImgAnnotationList<T> | undefined>(undefined);
+
+  protected readonly dialog = inject(MatDialog);
+  protected readonly dialogConfig: MatDialogConfig =
+    inject(MAT_DIALOG_DEFAULT_OPTIONS, { optional: true }) || {};
+
+  /**
+   * The annotator as received from Annotorious (e.g. via the
+   * `annotatorInit` event or the `annotator` signal of the directive).
+   */
+  public readonly annotator = input<ListAnnotator | null | undefined>();
+
+  /**
+   * The component used to edit a `ListAnnotation` in a dialog.
+   * Pass the component class, e.g. `[editorComponent]="MyEditorComponent"`.
+   */
+  public readonly editorComponent = input<ComponentType<unknown> | undefined>();
+
+  /**
+   * The image being annotated.
+   */
+  public readonly image = input<GalleryImage | null | undefined>();
+
+  /**
+   * The function used to build a string from a list annotation,
+   * summarizing its content.
+   */
+  public readonly annotationToString = input<
+    (annotation: ListAnnotation<T>) => string | null
+  >(defaultAnnotationToString);
+
+  /**
+   * Emitted when the inner list is created.
+   */
+  public readonly listInit = output<ImgAnnotationList<T>>();
 
   /**
    * The annotations list empowering this component.
    */
-  public get list(): ImgAnnotationList<T> | undefined {
-    return this._list;
-  }
+  public readonly list = this._list.asReadonly();
 
   /**
-   * The annotator object as received from Annotorious.
+   * The annotations in the list.
    */
-  public readonly annotator = input.required<any>();
+  public readonly annotations = computed(
+    () => this._list()?.annotations() || []
+  );
 
   /**
-   * The component used to edit a ListAnnotation. Pass the component
-   * class, e.g. [editorComponent]="MyEditorComponent".
+   * The selected annotation, if any.
    */
-  public readonly editorComponent = input.required<any>();
+  public readonly selectedAnnotation = computed(
+    () => this._list()?.selectedAnnotation() || null
+  );
 
   /**
-   * The image to be annotated.
+   * The index of the selected annotation, or -1.
    */
-  public readonly image = input.required<GalleryImage>();
+  public readonly selectedIndex = computed(
+    () => this._list()?.selectedIndex() ?? -1
+  );
 
-  /**
-   * The function used to build a string from a list annotation object,
-   * summarizing its content appropriately.
-   */
-  public readonly annotationToString = input<
-    (object: ListAnnotation<any>) => string | null
-  >((a: ListAnnotation<any>) => {
-    return a.value.bodies?.length ? a.value.bodies[0].value || null : a.id;
-  });
-
-  /**
-   * Emitted when the list is initialized.
-   */
-  public readonly listInit = output<ImgAnnotationList<T>>();
-
-  constructor(
-    public dialog: MatDialog,
-    @Inject(MAT_DIALOG_DEFAULT_OPTIONS) public dlgConfig: MatDialogConfig
-  ) {
-    // when annotator or editor component or image change, init list
-    // after a debounce time, to avoid multiple init calls
-    this._sub = combineLatest([
-      this.annotatorSubject.asObservable(),
-      this.editorComponentSubject.asObservable(),
-      this.imageSubject.asObservable(),
-    ])
-      .pipe(debounceTime(500))
-      .subscribe(() => {
-        this.initList(this.annotator(), this.editorComponent(), this.image());
+  constructor() {
+    // create the list or attach it to a new annotator
+    effect(() => {
+      const annotator = this.annotator();
+      const editor = this.editorComponent();
+      if (!annotator || !editor) {
+        return;
+      }
+      untracked(() => {
+        const list = this._list();
+        if (list) {
+          list.editorComponent = editor;
+          list.attach(annotator);
+          return;
+        }
+        const created = new ImgAnnotationList<T>({
+          annotator,
+          editorComponent: editor,
+          dialog: this.dialog,
+          dialogConfig: this.dialogConfig,
+          image: this.image() || undefined,
+        });
+        this._list.set(created);
+        this.listInit.emit(created);
       });
+    });
 
-    // when annotator or editor component or image change, init list
-    // effect(() => {
-    //   this.initList(this.annotator(), this.editorComponent(), this.image());
-    // });
+    // keep the list image in synch
+    effect(() => {
+      const image = this.image() || undefined;
+      untracked(() => this._list()?.image.set(image));
+    });
 
-    effect(() => {
-      this.annotatorSubject.next(this.annotator());
-    });
-    effect(() => {
-      this.editorComponentSubject.next(this.editorComponent());
-    });
-    effect(() => {
-      this.imageSubject.next(this.image());
-    });
+    inject(DestroyRef).onDestroy(() => this._list()?.dispose());
   }
 
-  public ngOnDestroy(): void {
-    this._sub.unsubscribe();
-  }
-
-  protected initList(annotator: any, editor: any, image?: GalleryImage): void {
-    if (annotator && editor) {
-      this._list = new ImgAnnotationList(
-        annotator,
-        editor,
-        this.dialog,
-        this.dlgConfig
-      );
-      this._list.image = image;
-      console.log('Annotations list component: init', this._list);
-      this.listInit.emit(this._list);
+  /**
+   * Select the specified annotation, or deselect it if it is already
+   * selected.
+   */
+  protected toggleSelection(annotation: ListAnnotation<T>): void {
+    const list = this._list();
+    if (!list) {
+      return;
     }
+    if (list.selectedAnnotation()?.id === annotation.id) {
+      list.deselectAnnotation();
+    } else {
+      list.selectAnnotation(annotation);
+    }
+  }
+
+  protected selectAnnotationAt(index: number): void {
+    this._list()?.selectAnnotationAt(index);
+  }
+
+  protected editAnnotationAt(index: number): Promise<boolean> {
+    return this._list()?.editAnnotationAt(index) || Promise.resolve(false);
+  }
+
+  protected removeAnnotationAt(index: number): void {
+    this._list()?.removeAnnotationAt(index);
   }
 }

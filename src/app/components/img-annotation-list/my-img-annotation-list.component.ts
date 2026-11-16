@@ -1,38 +1,23 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-
 import { MatTooltipModule } from '@angular/material/tooltip';
-import {
-  ImgAnnotationListComponent,
-  ListAnnotation,
-  ObjectToStringPipe,
-} from '../../../../projects/myrmidon/ngx-annotorious/src/public-api';
 
+import { ImgAnnotationListComponent } from '../../../../projects/myrmidon/ngx-annotorious/src/public-api';
+
+/**
+ * Sample custom annotations list, derived from ImgAnnotationListComponent.
+ */
 @Component({
   selector: 'app-my-img-annotation-list',
   templateUrl: './my-img-annotation-list.component.html',
-  styleUrls: ['./my-img-annotation-list.component.css'],
-  imports: [
-    CommonModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
-    ObjectToStringPipe,
-  ],
+  styleUrl: './my-img-annotation-list.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule],
 })
-export class MyImgAnnotationListComponent extends ImgAnnotationListComponent<any> {
-  public selectAnnotation(annotation: ListAnnotation<string>): void {
-    this.list?.selectAnnotation(annotation);
-  }
-
-  public removeAnnotationAt(index: number): void {
-    this.list?.removeAnnotationAt(index);
-  }
-
-  public async editAnnotationAt(index: number) {
-    await this.list?.editAnnotationAt(index);
+export class MyImgAnnotationListComponent extends ImgAnnotationListComponent<string> {
+  protected dump(index: number): void {
+    console.log(this.annotations()[index]);
   }
 }

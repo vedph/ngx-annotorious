@@ -1,8 +1,10 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  provideBrowserGlobalErrorListeners,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { provideRouter, withViewTransitions } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
-
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
 
 import { routes } from './app.routes';
@@ -17,10 +19,10 @@ import {
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideBrowserGlobalErrorListeners(),
+    provideZonelessChangeDetection(),
     provideRouter(routes, withViewTransitions()),
-    provideAnimationsAsync(),
-    provideHttpClient(),
+    provideHttpClient(withFetch()),
     {
       provide: MAT_DIALOG_DEFAULT_OPTIONS,
       useValue: {
@@ -47,7 +49,6 @@ export const appConfig: ApplicationConfig = {
         targetWidth: 800,
         targetHeight: -1,
         pageSize: 6,
-        // skip: 6
       } as SimpleIiifGalleryOptions,
     },
   ],

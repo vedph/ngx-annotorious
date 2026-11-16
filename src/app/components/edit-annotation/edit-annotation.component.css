@@ -1,12 +1,13 @@
-fieldset {
-  border: 1px solid silver;
-  border-radius: 4px;
-  padding: 6px;
+:host {
+  display: block;
 }
-legend {
-  color: silver;
+.text-field {
+  width: 100%;
+  min-width: 280px;
 }
-.center-content {
+.actions {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
 }

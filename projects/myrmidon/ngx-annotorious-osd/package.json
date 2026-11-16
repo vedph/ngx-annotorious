@@ -1,6 +1,6 @@
 {
   "name": "@myrmidon/ngx-annotorious-osd",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "OpenSeadragon Annotorious integration for Angular.",
   "keywords": [
     "Annotorious",
@@ -16,11 +16,12 @@
     "name": "Daniele Fusi"
   },
   "peerDependencies": {
-    "@angular/common": "^20.0.0",
-    "@angular/core": "^20.0.0",
-    "@annotorious/annotorious": "^3.4.2",
-    "@annotorious/openseadragon": "^3.4.2",
-    "@myrmidon/ngx-annotorious": "^1.0.0"
+    "@angular/common": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@annotorious/annotorious": "^3.9.0",
+    "@annotorious/openseadragon": "^3.9.0",
+    "@myrmidon/ngx-annotorious": "^2.0.0",
+    "openseadragon": "^5.0.0 || ^6.0.0"
   },
   "dependencies": {
     "tslib": "^2.3.0"

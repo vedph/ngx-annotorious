@@ -79,19 +79,15 @@ export const LOREM_IPSUM_OPTIONS: LoremIpsumOptions = {
   wordsPerSentence: { min: 5, max: 15 },
 };
 
+/**
+ * Lorem ipsum text generator, used to generate mock data.
+ */
 @Injectable({
   providedIn: 'root',
 })
 export class LoremIpsumService {
-  constructor() {}
-
   private capitalize(s: string): string {
-    if (!s?.length) {
-      return s;
-    }
-    return s.length === 1
-      ? s.toUpperCase()
-      : s.charAt(0).toUpperCase() + s.substring(1);
+    return s ? s.charAt(0).toUpperCase() + s.substring(1) : s;
   }
 
   private getRandomInt(min: number, max: number): number {
@@ -111,16 +107,17 @@ export class LoremIpsumService {
     }
   }
 
-  private makeArrayOfLength(length: number = 0): number[] {
-    return Array.apply(null, Array(length)).map(
-      (item: any, index: number): number => index
-    );
-  }
-
   private getRandomWord(options: LoremIpsumOptions): string {
     return options.words[this.getRandomInt(0, options.words.length - 1)];
   }
 
+  /**
+   * Generate the specified number of words.
+   * @param count The words count, or undefined for a random count
+   * in the range defined by options.wordsPerSentence.
+   * @param options The options.
+   * @returns The words separated by space.
+   */
   public generateWords(
     count?: number,
     options: LoremIpsumOptions = LOREM_IPSUM_OPTIONS
@@ -128,28 +125,35 @@ export class LoremIpsumService {
     this.validateOptions(options);
     const { min, max } = options.wordsPerSentence;
     const len = count || this.getRandomInt(min, max);
-    return this.makeArrayOfLength(len)
-      .reduce((accumulator: string, index: number): string => {
-        return `${this.getRandomWord(options)} ${accumulator}`;
-      }, '')
-      .trim();
+    return Array.from({ length: len }, () => this.getRandomWord(options)).join(
+      ' '
+    );
   }
 
+  /**
+   * Generate a sentence.
+   * @param options The options.
+   * @returns The sentence.
+   */
   public generateSentence(
     options: LoremIpsumOptions = LOREM_IPSUM_OPTIONS
   ): string {
-    return this.capitalize(this.generateWords());
+    return this.capitalize(this.generateWords(undefined, options)) + '.';
   }
 
+  /**
+   * Generate a paragraph.
+   * @param options The options.
+   * @returns The paragraph.
+   */
   public generateParagraph(
     options: LoremIpsumOptions = LOREM_IPSUM_OPTIONS
   ): string {
+    this.validateOptions(options);
     const { min, max } = options.sentencesPerParagraph;
     const len = this.getRandomInt(min, max);
-    return this.makeArrayOfLength(len)
-      .reduce((accumulator: string, index: number): string => {
-        return `${this.generateSentence(options)} ${accumulator}`;
-      }, '')
-      .trim();
+    return Array.from({ length: len }, () =>
+      this.generateSentence(options)
+    ).join(' ');
   }
 }

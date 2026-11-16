@@ -1,34 +1,45 @@
-import { Inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
+
 import { GalleryOptions, IMAGE_GALLERY_OPTIONS_KEY } from '../models';
-import { BehaviorSubject, Observable } from 'rxjs';
 
 /**
  * Service for managing the gallery options. The default options are provided
  * by the `IMAGE_GALLERY_OPTIONS_KEY` injection token. You can then update
- * them, get them, or subscribe to them.
+ * them, get them, or react to their changes via the `options` signal.
  */
 @Injectable({
   providedIn: 'root',
 })
 export class GalleryOptionsService {
-  private _data$: BehaviorSubject<GalleryOptions>;
+  private readonly _options = signal<GalleryOptions>(
+    inject(IMAGE_GALLERY_OPTIONS_KEY)
+  );
 
-  constructor(
-    @Inject(IMAGE_GALLERY_OPTIONS_KEY)
-    data: GalleryOptions
-  ) {
-    this._data$ = new BehaviorSubject<GalleryOptions>(data);
-  }
+  /**
+   * The current options.
+   */
+  public readonly options = this._options.asReadonly();
 
-  public select(): Observable<GalleryOptions> {
-    return this._data$.asObservable();
-  }
-
-  public set(data: GalleryOptions): void {
-    this._data$.next(data);
-  }
-
+  /**
+   * Get the current options.
+   */
   public get(): GalleryOptions {
-    return this._data$.value;
+    return this._options();
+  }
+
+  /**
+   * Set the options.
+   * @param options The new options.
+   */
+  public set(options: GalleryOptions): void {
+    this._options.set(options);
+  }
+
+  /**
+   * Update some of the options.
+   * @param options The options to change.
+   */
+  public patch(options: Partial<GalleryOptions>): void {
+    this._options.update((o) => ({ ...o, ...options }));
   }
 }

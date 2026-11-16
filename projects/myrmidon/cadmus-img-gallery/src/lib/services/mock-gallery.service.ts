@@ -1,14 +1,10 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 
 import { DataPage } from '@myrmidon/ngx-tools';
 import { GalleryImage } from '@myrmidon/ngx-annotorious';
 
-import {
-  GalleryFilter,
-  GalleryOptions,
-  GalleryService,
-} from '../models';
+import { GalleryFilter, GalleryOptions, GalleryService } from '../models';
 import { LoremIpsumService } from './lorem-ipsum.service';
 
 /**
@@ -22,8 +18,56 @@ export interface MockGalleryOptions extends GalleryOptions {
 }
 
 /**
+ * Filter images by title and description. Matching is case-insensitive.
+ * The description filter key can be either `description` or `dsc`.
+ * @param images The images to filter.
+ * @param filter The filter.
+ * @returns The filtered images.
+ */
+export function filterGalleryImages<T extends GalleryImage>(
+  images: T[],
+  filter: GalleryFilter | null | undefined
+): T[] {
+  const title = filter?.['title']?.toLowerCase();
+  const dsc = (filter?.['description'] || filter?.['dsc'])?.toLowerCase();
+  if (!title && !dsc) {
+    return images;
+  }
+  return images.filter(
+    (i) =>
+      (!title || i.title?.toLowerCase().includes(title)) &&
+      (!dsc || !!i.description?.toLowerCase().includes(dsc))
+  );
+}
+
+/**
+ * Get the specified page from a list of items.
+ * @param items The items.
+ * @param pageNumber The page number (1-N).
+ * @param pageSize The page size.
+ * @returns The page.
+ */
+export function getDataPage<T>(
+  items: T[],
+  pageNumber: number,
+  pageSize: number
+): DataPage<T> {
+  const size = Math.max(1, pageSize);
+  const pageCount = Math.ceil(items.length / size);
+  const number = Math.max(1, pageNumber);
+  const skip = (number - 1) * size;
+  return {
+    total: items.length,
+    pageCount,
+    pageNumber: number,
+    pageSize: size,
+    items: skip >= items.length ? [] : items.slice(skip, skip + size),
+  };
+}
+
+/**
  * Mock gallery service.
- * Image URIs will be built to use an online mock image service
+ * Image URIs are built to use an online mock image service
  * (https://loremflickr.com). Images are random, but the service ensures
  * consistency (at least until its cache is not emptied).
  * The only image metadata handled in filtering are title and description;
@@ -34,49 +78,35 @@ export interface MockGalleryOptions extends GalleryOptions {
   providedIn: 'root',
 })
 export class MockGalleryService implements GalleryService {
-  private _images: GalleryImage[];
+  private readonly _lipsum = inject(LoremIpsumService);
+  private _images: GalleryImage[] = [];
 
-  constructor(private _lipsum: LoremIpsumService) {
-    this._images = [];
-  }
-
-  private padLeft(number: number, length: number, character = '0'): string {
-    let result = String(number);
-    for (let i = result.length; i < length; ++i) {
-      result = character + result;
-    }
-    return result;
-  }
-
-  private buildUriPrefix(id: string, options: MockGalleryOptions): string {
-    const sb: string[] = [];
-    sb.push('https://loremflickr.com/');
+  private buildUri(id: string, options: GalleryOptions): string {
+    const sb: string[] = ['https://loremflickr.com/'];
     if (options.width) {
       sb.push(options.width.toString());
       if (options.height) {
-        sb.push('/');
-        sb.push(options.height.toString());
+        sb.push('/', options.height.toString());
       }
     }
-    sb.push('?lock=');
-    if (id) {
-      sb.push(id);
-    }
+    sb.push('?lock=', id);
     return sb.join('');
   }
 
-  private seed(options: MockGalleryOptions): void {
-    this._images = [];
-    const uriPrefix = this.buildUriPrefix('', options);
-
-    for (let i = 0; i < options.count; i++) {
-      this._images.push({
-        id: `${i + 1}`,
-        uri: uriPrefix + `${i + 1}`,
-        title: 'image #' + this.padLeft(i + 1, 5),
-        description: this._lipsum.generateSentence(),
-      });
+  private ensureSeeded(options: MockGalleryOptions): void {
+    const count = Math.max(0, options.count || 0);
+    if (count === this._images.length) {
+      return;
     }
+    this._images = Array.from({ length: count }, (_, i) => {
+      const id = `${i + 1}`;
+      return {
+        id,
+        uri: this.buildUri(id, options),
+        title: 'image #' + id.padStart(5, '0'),
+        description: this._lipsum.generateSentence(),
+      };
+    });
   }
 
   /**
@@ -91,47 +121,17 @@ export class MockGalleryService implements GalleryService {
     filter: GalleryFilter,
     pageNumber: number,
     pageSize: number,
-    options: MockGalleryOptions
+    options: GalleryOptions
   ): Observable<DataPage<GalleryImage>> {
-    // seed if total count changed
-    if (options.count !== this._images.length) {
-      this.seed(options);
-    }
-    const titleFilter = filter['title'];
-    const dscFilter = filter['description'];
-
-    // get filtered images (already sorted by title)
-    const filtered = this._images.filter((i) => {
-      if (titleFilter && !i.title.includes(titleFilter)) {
-        return false;
-      }
-      if (dscFilter && !i.description?.includes(dscFilter)) {
-        return false;
-      }
-      return true;
-    });
-
-    // get page
-    const skip = (pageNumber - 1) * pageSize;
-    const pageCount = Math.ceil(filtered.length / pageSize);
-
-    if (skip > filtered.length) {
-      return of({
-        total: filtered.length,
-        pageCount: pageCount,
-        pageNumber: pageNumber,
-        pageSize: pageSize,
-        items: [],
-      });
-    }
-
-    return of({
-      total: filtered.length,
-      pageCount: pageCount,
-      pageNumber: pageNumber,
-      pageSize: pageSize,
-      items: filtered.slice(skip, skip + pageSize),
-    });
+    this.ensureSeeded(options as MockGalleryOptions);
+    // images are already sorted by title
+    return of(
+      getDataPage(
+        filterGalleryImages(this._images, filter),
+        pageNumber,
+        pageSize
+      )
+    );
   }
 
   /**
@@ -142,18 +142,21 @@ export class MockGalleryService implements GalleryService {
    */
   public getImage(
     id: string,
-    options: MockGalleryOptions
+    options: GalleryOptions
   ): Observable<GalleryImage | null> {
-    // seed if total count changed
-    if (options.count !== this._images.length) {
-      this.seed(options);
-    }
-    const i = +id - 1;
-    if (i >= this._images.length) {
+    this.ensureSeeded(options as MockGalleryOptions);
+    const image = this._images[+id - 1];
+    if (!image) {
       return of(null);
     }
     // rebuild the URI as size must be drawn from options
-    const image = { ...this._images[i], uri: this.buildUriPrefix(id, options) };
-    return of(image);
+    return of({ ...image, uri: this.buildUri(id, options) });
+  }
+
+  /**
+   * Clear the seeded images.
+   */
+  public clearCache(): void {
+    this._images = [];
   }
 }

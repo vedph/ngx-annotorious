@@ -1,89 +1,92 @@
-<form [formGroup]="form" (submit)="apply()">
-  <form [formGroup]="metaForm" (submit)="addMetadatum()">
-    <fieldset class="form-row">
-      <legend>add filter</legend>
-
-      <!-- metaId (bound) -->
-      @if (entries().length) {
-      <mat-form-field>
-        <mat-label>name</mat-label>
-        <mat-select [formControl]="metaId">
-          @for (e of entries(); track e) {
-          <mat-option [value]="e.id">{{ e.value }}</mat-option>
-          }
-        </mat-select>
-        @if ( $any(metaId).errors?.required && (metaId.dirty || metaId.touched)
-        ) {
-        <mat-error>name required</mat-error>
+<section class="gallery-filter" aria-label="gallery filter">
+  <!-- new metadatum -->
+  <form class="add-form" (submit)="addMetadatum($event)">
+    @if (safeEntries().length) {
+    <mat-form-field class="name-field">
+      <mat-label>name</mat-label>
+      <mat-select [formField]="entryForm.key">
+        @for (e of safeEntries(); track e.id) {
+        <mat-option [value]="e.id">{{ e.value }}</mat-option>
         }
-      </mat-form-field>
+      </mat-select>
+      @if (entryForm.key().touched() && entryForm.key().invalid()) {
+      <mat-error>{{ entryForm.key().errors()[0]?.message }}</mat-error>
       }
-      <!-- metaId (free) -->
-      @else {
-      <mat-form-field>
-        <mat-label>name</mat-label>
-        <input matInput [formControl]="metaId" />
-        @if ( $any(metaId).errors?.required && (metaId.dirty || metaId.touched)
-        ) {
-        <mat-error>name required</mat-error>
-        } @if ( $any(metaId).errors?.maxLength && (metaId.dirty ||
-        metaId.touched) ) {
-        <mat-error>name too long</mat-error>
-        }
-      </mat-form-field>
+    </mat-form-field>
+    } @else {
+    <mat-form-field class="name-field">
+      <mat-label>name</mat-label>
+      <input matInput [formField]="entryForm.key" />
+      @if (entryForm.key().touched() && entryForm.key().invalid()) {
+      <mat-error>{{ entryForm.key().errors()[0]?.message }}</mat-error>
       }
+    </mat-form-field>
+    }
 
-      <!-- metaValue -->
-      <mat-form-field>
-        <mat-label>value</mat-label>
-        <input matInput [formControl]="metaValue" />
-        @if ( $any(metaValue).errors?.maxLength && (metaValue.dirty ||
-        metaValue.touched) ) {
-        <mat-error>value too long</mat-error>
-        }
-      </mat-form-field>
+    <mat-form-field class="value-field">
+      <mat-label>value</mat-label>
+      <input matInput [formField]="entryForm.value" />
+      @if (entryForm.value().invalid()) {
+      <mat-error>{{ entryForm.value().errors()[0]?.message }}</mat-error>
+      }
+    </mat-form-field>
 
-      <button type="submit" [disabled]="metaForm.invalid" mat-icon-button>
-        <mat-icon class="mat-primary">add_circle</mat-icon>
-      </button>
-    </fieldset>
+    <button
+      type="submit"
+      mat-icon-button
+      class="mat-primary"
+      matTooltip="Add filter"
+      aria-label="add filter"
+      [disabled]="entryForm().invalid()"
+    >
+      <mat-icon>add_circle</mat-icon>
+    </button>
   </form>
 
   <!-- list -->
-  <table>
-    <thead>
-      <tr>
-        <th></th>
-        <th>name</th>
-        <th>value</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (m of metadata.value; track m; let i = $index) {
-      <tr>
-        <td class="fit-width">
-          <button type="button" mat-icon-button (click)="deleteMetadatum(i)">
-            <mat-icon class="mat-warn">clear</mat-icon>
-          </button>
-        </td>
-        <td [matTooltip]="m.id">{{ m.label }}</td>
-        <td>{{ m.value }}</td>
-      </tr>
-      }
-    </tbody>
-  </table>
+  @if (metadata().length) {
+  <ul class="metadata" aria-label="filters">
+    @for (m of metadata(); track m.id; let i = $index) {
+    <li class="metadatum">
+      <span class="metadatum-name" [matTooltip]="m.id">{{ m.label }}</span>
+      <span class="metadatum-value">{{ m.value }}</span>
+      <button
+        type="button"
+        mat-icon-button
+        class="mat-warn"
+        matTooltip="Remove filter"
+        [attr.aria-label]="'remove filter ' + m.label"
+        (click)="deleteMetadatum(i)"
+      >
+        <mat-icon>clear</mat-icon>
+      </button>
+    </li>
+    }
+  </ul>
+  } @else {
+  <p class="hint">No filters.</p>
+  }
 
-  <div class="form-row" style="gap: 0" role="group" aria-label="toolbar">
+  <!-- toolbar -->
+  <div class="toolbar" role="group" aria-label="filter actions">
     <button
-      mat-icon-button
       type="button"
+      mat-stroked-button
+      matTooltip="Clear and apply filters"
       (click)="reset()"
-      matTooltip="Reset filters"
     >
-      <mat-icon class="mat-warn">clear</mat-icon>
+      <mat-icon>filter_alt_off</mat-icon>
+      reset
     </button>
-    <button type="submit" mat-icon-button matTooltip="Apply filters">
-      <mat-icon class="mat-primary">check_circle</mat-icon>
+    <button
+      type="button"
+      mat-flat-button
+      matTooltip="Apply filters"
+      [disabled]="!dirty()"
+      (click)="apply()"
+    >
+      <mat-icon>filter_alt</mat-icon>
+      apply
     </button>
   </div>
-</form>
+</section>

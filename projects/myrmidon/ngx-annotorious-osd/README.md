@@ -2,63 +2,61 @@
 
 📦 `@myrmidon/ngx-annotorious-osd`
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.0.0.
+This is an OpenSeadragon Annotorious wrapper for Angular. It works with the core components of [@myrmidon/ngx-annotorious](../ngx-annotorious/README.md) (toolbar and annotation lists), and provides an OSD-specific directive.
 
-This is an OpenSeadragon Annotorious wrapper for Angular. Its core components derive from [@myrmidon/ngx-annotorious](../ngx-annotorious/README.md). A new OSD-specific directive is provided to be wired with these components.
-
-⚠️ THIS IS WORK IN PROGRESS!
+⚠️ This library is experimental.
 
 ## Setup
 
-1. add packages: in addition to [@myrmidon/ngx-annotorious](../ngx-annotorious/README.md), which contains the core components for both simple and OSD based annotations, this library requires the following packages (to avoid build warning, add `openseadragon` to your `angular.json`'s `allowedCommonJsDependencies`):
+1. Add the packages. Besides [@myrmidon/ngx-annotorious](../ngx-annotorious/README.md), this library requires `openseadragon` and `@annotorious/openseadragon`. To avoid build warnings, add `openseadragon` to `allowedCommonJsDependencies` in your `angular.json`.
 
     ```bash
-    npm i openseadragon @annotorious/openseadragon
-    npm i --save-dev --force @types/openseadragon
+    pnpm add openseadragon @annotorious/openseadragon
+    pnpm add -D @types/openseadragon
     ```
 
-2. add to `angular.json` under your project's `architect/build/options/assets` the configuration to copy OSD assets into the output `dist` folder during the build process:
+2. In `angular.json`, add the Annotorious OSD styles to `styles`:
 
-```json
-{
-  "glob": "**/*",
-  "input": "node_modules/openseadragon/build/openseadragon/images",
-  "output": "/images"
-}
-```
+    ```json
+    "node_modules/@annotorious/openseadragon/dist/annotorious-openseadragon.css"
+    ```
 
-This will grab the image assets from the specified `node_modules` path, and copy them to the output `dist/images` folder.
+3. In `angular.json`, add an entry under `architect/build/options/assets` to copy the OSD navigation images into the output folder:
+
+    ```json
+    {
+      "glob": "**/*",
+      "input": "node_modules/openseadragon/build/openseadragon/images",
+      "output": "/images"
+    }
+    ```
 
 ## Usage
 
-In your consumer component template, add an `img` wrapped in a `div`. The wrapper `div` (not the `img`!) will be the target of the OSD directive, e.g.:
+Add the directive to a container element. The image source is either the `source` input (an image URI or any OSD tile source), or the `src` of the first `img` child, which gets hidden:
 
 ```html
 <div
-  id="osd-container"
   osdImgAnnotator
-  (createAnnotation)="onCreateAnnotation($event)"
-  (deleteAnnotation)="onDeleteAnnotation($event)"
-  (clickAnnotation)="onClickAnnotation($event)"
-  (selectionChanged)="onSelectionChanged($event)"
-  (annotatorInit)="onAnnotatorInit($event)"
-  [tool]="tool"
-  [additionalTools]="['circle', 'ellipse']"
+  #osd="osdImgAnnotator"
+  height="500px"
+  [tool]="tool()"
+  [drawingEnabled]="drawingEnabled()"
 >
-  <img
-    alt="image"
-    src="https://github.com/openseadragon/example-images/blob/gh-pages/grand-canyon-landscape-overlooking.jpg"
-  />
+  <img alt="canyon" src="canyon.jpg" />
 </div>
+
+<ann-basic-img-annotation-list
+  [annotator]="osd.annotator()"
+  [editorComponent]="editor"
+  [image]="image"
+/>
 ```
 
-Usually, you also setup some styles for this `div`:
+- ▶️ input: `config` (`OsdAnnotoriousConfig`), `viewerOptions` (merged with `DEFAULT_OSD_VIEWER_OPTIONS`), `source`, `height` (default `500px`), `tool`, `drawingEnabled`, `annotations`, `selectedAnnotation`.
+- 🔃 `annotator`: signal with the current `OpenSeadragonAnnotator`.
+- 🔥 output: same as `ImgAnnotatorDirective`, plus `viewportIntersect`.
 
-```css
-div#osd-container {
-  width: 100%;
-  background: #f0f0f0; /* Optional: to see container before image loads */
-}
-```
+When drawing is enabled, dragging draws shapes; disable drawing to pan and zoom the image with the mouse.
 
-💡 You can find some [example images](https://github.com/openseadragon/example-images/tree/gh-pages) at e.g. <https://github.com/openseadragon/example-images/blob/gh-pages/grand-canyon-landscape-overlooking.jpg>.
+💡 You can find some [example images](https://github.com/openseadragon/example-images/tree/gh-pages) in the OpenSeadragon repository.

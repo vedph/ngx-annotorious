@@ -1,90 +1,71 @@
-import { Observable } from 'rxjs';
-
-import { DataPage } from '@myrmidon/ngx-tools';
-
-import { GalleryImage } from './directives/img-annotator.directive';
-import { InjectionToken } from '@angular/core';
+import { AnnotoriousOpts, ImageAnnotation } from '@annotorious/annotorious';
 
 /**
- * The token used for DI of the gallery server options.
- * Provide it in your consumer app module under providers:
- * {
- *   provider: GALLERY_IMAGE_OPTIONS_TOKEN,
- *   useValue: YOUR_OPTIONS_CONSTANT_OBJECT
- * }
+ * Essential metadata for a gallery image to annotate. You can derive
+ * your own model from this one.
  */
-export const IMAGE_GALLERY_OPTIONS_TOKEN = new InjectionToken(
-  'imgGalleryOptions'
-);
-
-/**
- * The token used for DI of the gallery service.
- * Provide it in your consumer app module under providers:
- * {
- *   provider: GALLERY_IMAGE_SERVICE_TOKEN,
- *   useValue: YOUR_OPTIONS_CONSTANT_OBJECT
- * }
- */
-export const IMAGE_GALLERY_SERVICE_TOKEN = new InjectionToken(
-  'imgGalleryService'
-);
-
-/**
- * Essential options for a gallery image. You can derive your own model
- * from this one.
- */
-export interface GalleryOptions {
-  baseUri: string;
-  width?: number;
-  height?: number;
-  pageSize?: number;
-}
-
-/**
- * A generic filter consisting of name:value pairs where both name and
- * value are strings.
- */
-export type GalleryFilter = { [key: string]: string };
-
-/**
- * Gallery image service interface.
- */
-export interface GalleryService {
-  /**
-   * Get the specified page of gallery images.
-   *
-   * @param filter The filter.
-   * @param pageNumber The page number.
-   * @param pageSize The page size.
-   * @param options The gallery options.
-   */
-  getImages(
-    filter: GalleryFilter,
-    pageNumber: number,
-    pageSize: number,
-    options: GalleryOptions
-  ): Observable<DataPage<GalleryImage>>;
-
-  /**
-   * Get the specified image.
-   *
-   * @param id The image ID.
-   * @param options The image options.
-   */
-  getImage(
-    id: string,
-    options: GalleryOptions
-  ): Observable<GalleryImage | null>;
-}
-
-/**
- * Essential metadata mostly extracted from the W3C annotation produced
- * by Annotorious.
- */
-export interface GalleryImageAnnotation {
+export interface GalleryImage {
   id: string;
-  target: GalleryImage;
-  selector: string;
-  notes?: string[];
-  tags?: string[];
+  uri: string;
+  title: string;
+  description?: string;
+}
+
+/**
+ * Configuration for the Annotorious image annotator. This is the full set
+ * of Annotorious options (see https://annotorious.dev/api-reference/image-annotator/),
+ * e.g. `autoSave`, `drawingEnabled`, `drawingMode`, `userSelectAction`,
+ * `style`, `theme`, `modalSelect`, `disableUndoRedoKeys`.
+ */
+export type AnnotoriousConfig = AnnotoriousOpts<ImageAnnotation, ImageAnnotation>;
+
+/**
+ * Default configuration for the annotator directives. This object is frozen:
+ * spread it to derive your own configuration.
+ */
+export const DEFAULT_ANNOTORIOUS_CONFIG: Readonly<AnnotoriousConfig> =
+  Object.freeze({
+    autoSave: false,
+    drawingEnabled: true,
+    drawingMode: 'drag',
+  });
+
+/**
+ * Payload of the annotator click event.
+ */
+export interface AnnotationClickEvent {
+  annotation: ImageAnnotation;
+  originalEvent: PointerEvent;
+}
+
+/**
+ * Payload of the annotator update event.
+ */
+export interface AnnotationUpdateEvent {
+  updated: ImageAnnotation;
+  previous: ImageAnnotation;
+}
+
+/**
+ * Compare two sets of annotations by value. This is used to avoid pushing
+ * into the annotator annotations equal to those it already has.
+ * @param a The first set.
+ * @param b The second set.
+ * @returns True if equal.
+ */
+export function areAnnotationsEqual(
+  a: readonly ImageAnnotation[] | undefined | null,
+  b: readonly ImageAnnotation[] | undefined | null
+): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (!a || !b || a.length !== b.length) {
+    return false;
+  }
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
 }

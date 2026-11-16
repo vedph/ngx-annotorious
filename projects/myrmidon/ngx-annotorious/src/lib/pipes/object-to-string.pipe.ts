@@ -1,16 +1,20 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
 /**
- * A pipe which transforms the received object into a string
- * using the specified function to build that string from the
- * object.
- * Usage: {{ myObject | objectToString:myFunction }}
+ * A pipe which transforms the received object into a string using the
+ * specified function. Usage: `{{ myObject | objectToString:myFunction }}`.
  */
 @Pipe({
   name: 'objectToString',
 })
 export class ObjectToStringPipe implements PipeTransform {
-  transform(value: any, fn: Function): string | null {
-    return fn(value);
+  public transform<T>(
+    value: T,
+    fn?: ((value: T) => string | null | undefined) | null
+  ): string | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return fn ? fn(value) ?? null : String(value);
   }
 }

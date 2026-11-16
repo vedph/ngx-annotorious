@@ -2,7 +2,7 @@
 echo NPM PUBLISH
 echo Before continuing, ensure that:
 echo - you are logged in (npm whoami)
-echo - you have successfully rebuilt all the libraries (npm run...)
+echo - you have successfully rebuilt all the libraries (pnpm run build-lib)
 pause
 
 cd .\dist\myrmidon\ngx-annotorious

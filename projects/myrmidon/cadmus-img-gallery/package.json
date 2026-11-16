@@ -1,6 +1,6 @@
 {
   "name": "@myrmidon/cadmus-img-gallery",
-  "version": "9.0.0",
+  "version": "10.0.0",
   "description": "Cadmus - minimalist image gallery.",
   "keywords": [
     "Cadmus",
@@ -15,9 +15,13 @@
     "name": "Daniele Fusi"
   },
   "peerDependencies": {
-    "@angular/common": "^20.0.0",
-    "@angular/core": "^20.0.0",
-    "@myrmidon/ngx-annotorious": "1.0.0"
+    "@angular/common": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/forms": "^22.0.0",
+    "@angular/material": "^22.0.0",
+    "@myrmidon/ngx-annotorious": "^2.0.0",
+    "@myrmidon/ngx-tools": "^3.0.0",
+    "rxjs": "^7.8.0"
   },
   "dependencies": {
     "tslib": "^2.3.0"

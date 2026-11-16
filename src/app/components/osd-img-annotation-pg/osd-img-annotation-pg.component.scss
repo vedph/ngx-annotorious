@@ -1,4 +1,28 @@
-div#osd-container {
+.annotator {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-areas: "image list";
+  gap: 16px;
+}
+.image {
+  grid-area: image;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.osd-container {
   width: 100%;
-  background: #f0f0f0; /* Optional: to see container before image loads */
+  border-radius: var(--mat-sys-corner-medium, 12px);
+  overflow: hidden;
+}
+.list {
+  grid-area: list;
+}
+@media only screen and (max-width: 959px) {
+  .annotator {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "image"
+      "list";
+  }
 }

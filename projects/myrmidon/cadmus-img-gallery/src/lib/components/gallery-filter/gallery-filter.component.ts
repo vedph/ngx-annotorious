@@ -1,12 +1,15 @@
-import { Component, effect, input, model } from '@angular/core';
 import {
-  FormBuilder,
-  FormControl,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  model,
+  signal,
+  untracked,
+} from '@angular/core';
+import { form, FormField, maxLength, required } from '@angular/forms/signals';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -15,24 +18,35 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { ThesaurusEntry } from '@myrmidon/cadmus-core';
-
 import { GalleryListRepository } from '../../gallery-list.repository';
-import { GalleryFilter } from '../../models';
+import { GalleryFilter, GalleryFilterEntry } from '../../models';
 
-interface FilterMetadatum {
+/**
+ * A filter metadatum.
+ */
+export interface GalleryFilterMetadatum {
   id: string;
   label: string;
-  value?: string;
+  value: string;
 }
 
+/**
+ * The maximum length of filter names and values.
+ */
+const MAX_LENGTH = 500;
+
+/**
+ * Gallery filter. This edits a set of name=value pairs used to filter
+ * the images in the gallery. When applied, the filter is set into the
+ * gallery list repository.
+ */
 @Component({
   selector: 'cadmus-gallery-filter',
   templateUrl: './gallery-filter.component.html',
-  styleUrls: ['./gallery-filter.component.css'],
+  styleUrl: './gallery-filter.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
-    ReactiveFormsModule,
+    FormField,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
@@ -42,118 +56,113 @@ interface FilterMetadatum {
   ],
 })
 export class GalleryFilterComponent {
+  private readonly _repository = inject(GalleryListRepository);
+
   /**
-   * The filter to edit.
+   * The filter being edited. When not set, the repository filter is used.
    */
-  public readonly filter = model<GalleryFilter>();
+  public readonly filter = model<GalleryFilter | undefined>();
 
   /**
    * The entries used to represent image gallery metadata filters.
    * Each entry is a metadatum, with ID=metadatum name and value=label.
-   * If not set, users will be allowed to freely type a name rather
-   * than picking it from a list.
+   * If empty, users can freely type a name rather than picking it from
+   * a list.
    */
-  public readonly entries = input<ThesaurusEntry[]>([]);
+  public readonly entries = input<GalleryFilterEntry[] | null | undefined>([]);
 
-  public metadata: FormControl<FilterMetadatum[]>;
-  public form: FormGroup;
+  /**
+   * The filter metadata being edited.
+   */
+  public readonly metadata = signal<GalleryFilterMetadatum[]>([]);
 
-  public metaId: FormControl<string>;
-  public metaValue: FormControl<string>;
-  public metaForm: FormGroup;
+  /**
+   * True if the edited metadata differ from the applied filter.
+   */
+  public readonly dirty = signal(false);
 
-  constructor(
-    formBuilder: FormBuilder,
-    private _repository: GalleryListRepository
-  ) {
-    // forms
-    this.metadata = formBuilder.control([], { nonNullable: true });
-    this.form = formBuilder.group({
-      metadata: this.metadata,
-    });
+  protected readonly safeEntries = computed(() => this.entries() || []);
 
-    this.metaId = formBuilder.control('', {
-      validators: [Validators.required, Validators.maxLength(500)],
-      nonNullable: true,
-    });
-    this.metaValue = formBuilder.control('', {
-      validators: Validators.maxLength(500),
-      nonNullable: true,
-    });
-    this.metaForm = formBuilder.group({
-      id: this.metaId,
-      value: this.metaValue,
-    });
+  // new metadatum form
+  protected readonly entry = signal({ key: '', value: '' });
+  protected readonly entryForm = form(this.entry, (p) => {
+    required(p.key, { message: 'name required' });
+    maxLength(p.key, MAX_LENGTH, { message: 'name too long' });
+    maxLength(p.value, MAX_LENGTH, { message: 'value too long' });
+  });
 
-    // when filter changes, update form
+  constructor() {
+    // when the filter (or the repository filter) changes, update metadata
     effect(() => {
-      this.updateForm(this.filter());
+      const filter = this.filter() ?? this._repository.filter();
+      const entries = this.safeEntries();
+      untracked(() => this.updateMetadata(filter, entries));
     });
   }
 
-  private updateForm(filter?: GalleryFilter): void {
-    if (!filter) {
-      this.form.reset();
+  private getLabel(id: string, entries = this.safeEntries()): string {
+    return entries.find((e) => e.id === id)?.value || id;
+  }
+
+  private updateMetadata(
+    filter: GalleryFilter | undefined,
+    entries: GalleryFilterEntry[]
+  ): void {
+    this.metadata.set(
+      Object.entries(filter || {}).map(([id, value]) => ({
+        id,
+        label: this.getLabel(id, entries),
+        value: value || '',
+      }))
+    );
+    this.dirty.set(false);
+  }
+
+  protected addMetadatum(event?: Event): void {
+    event?.preventDefault();
+    if (this.entryForm().invalid()) {
+      this.entryForm.key().markAsTouched();
       return;
     }
-    const metadata: FilterMetadatum[] = [];
-
-    Object.keys(filter).forEach((key) => {
-      const entry = this.entries().find((e) => e.id === key);
-      metadata.push({
-        id: key,
-        label: entry?.value || key,
-        value: filter![key],
-      });
-    });
-    this.metadata.setValue(metadata);
-    this.form.markAsPristine();
+    const { key, value } = this.entry();
+    const id = key.trim();
+    // replace any existing metadatum with the same name
+    this.metadata.update((list) => [
+      ...list.filter((m) => m.id !== id),
+      { id, label: this.getLabel(id), value: value.trim() },
+    ]);
+    this.dirty.set(true);
+    this.entryForm().reset({ key: '', value: '' });
   }
 
-  public addMetadatum(): void {
-    if (this.metaForm.invalid) {
-      return;
-    }
-    const metadata: FilterMetadatum[] = [...this.metadata.value];
-    metadata.push({
-      id: this.metaId.value,
-      label:
-        this.entries().find((e) => e.id === this.metaId.value)?.value ||
-        this.metaId.value,
-      value: this.metaValue.value || '',
-    });
-    this.metadata.setValue(metadata);
-    this.metadata.updateValueAndValidity();
-    this.metadata.markAsDirty();
+  protected deleteMetadatum(index: number): void {
+    this.metadata.update((list) => list.filter((_, i) => i !== index));
+    this.dirty.set(true);
   }
 
-  public deleteMetadatum(index: number): void {
-    const metadata: FilterMetadatum[] = [...this.metadata.value];
-    metadata.splice(index, 1);
-    this.metadata.setValue(metadata);
-    this.metadata.updateValueAndValidity();
-    this.metadata.markAsDirty();
-  }
-
-  private getFilter(): GalleryFilter {
+  private buildFilter(): GalleryFilter {
     const filter: GalleryFilter = {};
-    const metadata = this.metadata.value;
-    for (let i = 0; i < this.metadata.value.length; i++) {
-      filter[metadata[i].id] = metadata[i].value || '';
+    for (const m of this.metadata()) {
+      filter[m.id] = m.value;
     }
     return filter;
   }
 
+  /**
+   * Clear the filter and apply it.
+   */
   public reset(): void {
-    this.form.reset();
+    this.metadata.set([]);
     this.apply();
   }
 
+  /**
+   * Apply the edited filter.
+   */
   public apply(): void {
-    if (this.form.invalid) {
-      return;
-    }
-    this.filter.set(this.getFilter());
-    this._repository.setFilter(this.filter()!);
+    const filter = this.buildFilter();
+    this.filter.set(filter);
+    this.dirty.set(false);
+    void this._repository.setFilter(filter);
   }
 }

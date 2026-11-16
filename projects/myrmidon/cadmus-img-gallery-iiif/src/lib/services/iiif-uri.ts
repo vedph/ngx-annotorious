@@ -110,47 +110,37 @@ export class IiifUri {
     if (!uri) {
       return null;
     }
-    const parts = uri.replace(/^https?:\/\//, '').split('/');
-    if (parts.length < 6) {
-      return null;
-    }
-
-    // TODO: finer regex for \/([^\/]+)
-    //  scheme       etc identifierregion    size      rotation                quality                        format
+    // scheme://server/prefix/identifier/region/size/rotation/quality.format
     const m =
-      /^(https?):\/\/(.+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/!?([0-9]+(?:\.[0-9]+)?)\/(default|color|gray|bitonal)\.(jpg|tif|png|gif|jp2|pdf|webp)$/.exec(
-        uri
+      /^(https?):\/\/(.+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(!?[0-9]+(?:\.[0-9]+)?)\/(default|color|gray|bitonal)\.(jpg|tif|png|gif|jp2|pdf|webp)(?:[?#].*)?$/i.exec(
+        uri.trim()
       );
-    const result = new IiifUri();
     if (!m) {
       return null;
     }
+    const result = new IiifUri();
+    try {
+      result.scheme = m[1].toLowerCase() as 'http' | 'https';
 
-    // m[1]=scheme
-    result.scheme = m[1] as any;
+      // m[2] must be split into server and prefix
+      const i = m[2].indexOf('/');
+      if (i > -1) {
+        result.server = m[2].substring(0, i);
+        result.prefix = m[2].substring(i + 1);
+      } else {
+        result.server = m[2];
+      }
 
-    // m[2] must be split into server and prefix
-    let i = m[2].indexOf('/');
-    if (i > -1) {
-      result.server = m[2].substring(0, i);
-      result.prefix = m[2].substring(i + 1);
-    } else {
-      result.server = m[2];
+      result.identifier = m[3];
+      result.region = m[4];
+      result.size = m[5];
+      result.rotation = m[6];
+      result.quality = m[7].toLowerCase() as IiifUri['quality'];
+      result.format = m[8].toLowerCase() as IiifUri['format'];
+    } catch {
+      // malformed URI encoding
+      return null;
     }
-
-    // m[3] identifier
-    result.identifier = m[3];
-    // m[4] region
-    result.region = m[4];
-    // m[5] size
-    result.size = m[5];
-    // m[6] rotation
-    result.rotation = m[6];
-    // m[7] quality
-    result.quality = m[7] as any;
-    // m[8] format
-    result.format = m[8] as any;
-
     return result;
   }
 

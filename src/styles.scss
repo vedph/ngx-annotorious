@@ -1,41 +1,52 @@
 @use "@angular/material" as mat;
 
-@include mat.elevation-classes();
-@include mat.app-background();
-
-$light-theme: mat.define-theme(
+// Same approach of the Cadmus shell: a single M3 theme with
+// theme-type: color-scheme, so that all the --mat-sys-* tokens are emitted
+// as light-dark(light, dark) and the mode is driven by color-scheme.
+$_theme: mat.define-theme(
   (
     color: (
-      theme-type: light,
-      primary: mat.$blue-palette,
+      primary: mat.$azure-palette,
+      tertiary: mat.$orange-palette,
+      theme-type: color-scheme,
     ),
-  )
-);
-
-$accent-theme: mat.define-theme(
-  (
-    color: (
-      theme-type: light,
-      primary: mat.$violet-palette,
+    typography: (
+      brand-family: "Roboto",
+      plain-family: "Roboto",
     ),
-  )
-);
-
-$error-theme: mat.define-theme(
-  (
-    color: (
-      theme-type: light,
-      primary: mat.$red-palette,
+    density: (
+      scale: 0,
     ),
   )
 );
 
 html {
-  @include mat.all-component-themes($light-theme);
-  & {
-    color-scheme: light;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$orange-palette,
+        theme-type: color-scheme,
+      ),
+      typography: (
+        brand-family: "Roboto",
+        plain-family: "Roboto",
+      ),
+      density: 0,
+    )
+  );
+
+  // light by default; toggled to dark via the .dark-mode class
+  color-scheme: light;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+
+  &.dark-mode {
+    color-scheme: dark;
   }
 }
+
+@include mat.typography-hierarchy($_theme);
 
 html,
 body {
@@ -43,20 +54,56 @@ body {
 }
 body {
   margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
 }
 
-.mat-primary, .mat-accent {
-  @include mat.all-component-colors($accent-theme);
+// ── Semantic color utility classes (as in the Cadmus shell) ─────────────────
+[mat-flat-button].mat-error,
+[mat-flat-button].mat-warn {
+  --mat-button-filled-container-color: var(--mat-sys-error);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-error);
+}
+[mat-flat-button].mat-accent {
+  --mat-button-filled-container-color: var(--mat-sys-tertiary);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-tertiary);
+}
+[mat-icon-button].mat-primary {
+  --mat-icon-button-icon-color: var(--mat-sys-primary);
+}
+[mat-icon-button].mat-error,
+[mat-icon-button].mat-warn {
+  --mat-icon-button-icon-color: var(--mat-sys-error);
+}
+[mat-icon-button].mat-accent {
+  --mat-icon-button-icon-color: var(--mat-sys-tertiary);
+}
+mat-icon.mat-primary {
+  --mat-icon-color: var(--mat-sys-primary);
+}
+mat-icon.mat-error,
+mat-icon.mat-warn {
+  --mat-icon-color: var(--mat-sys-error);
+}
+mat-icon.mat-accent {
+  --mat-icon-color: var(--mat-sys-tertiary);
+}
+.bg-mat-primary {
+  background-color: var(--mat-sys-primary) !important;
+  color: var(--mat-sys-on-primary) !important;
+  --mat-toolbar-container-text-color: var(--mat-sys-on-primary);
+  --mat-button-text-label-text-color: var(--mat-sys-on-primary);
+  --mat-button-text-state-layer-color: var(--mat-sys-on-primary);
+  --mat-icon-button-icon-color: var(--mat-sys-on-primary);
+  --mat-icon-button-state-layer-color: var(--mat-sys-on-primary);
+  --mat-icon-color: var(--mat-sys-on-primary);
 }
 
-.mat-error, .mat-warn {
-  @include mat.all-component-colors($error-theme);
+// ── Demo layout helpers ──────────────────────────────────────────────────────
+.form-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
-
-mat-icon.mat-accent, mat-icon.mat-primary {
-  color: var(--mat-form-field-filled-focus-label-text-color) !important;
-}
-mat-icon.mat-error, mat-icon.mat-warn {
-  color: var(--mat-form-field-error-focus-trailing-icon-color) !important;
+.page {
+  padding: 16px;
 }

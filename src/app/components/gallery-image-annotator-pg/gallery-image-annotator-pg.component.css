@@ -1,32 +1,37 @@
-div#container {
+.annotator {
   display: grid;
-  grid-template-rows: 1fr;
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas: "image list";
+  gap: 16px;
+  padding-top: 8px;
+}
+.image {
+  grid-area: image;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
-div#image {
-  grid-area: image;
+.image img {
+  max-width: 100%;
 }
-div#list {
+.list {
   grid-area: list;
 }
-div#dump {
+.dump {
   margin-top: 8px;
+}
+.json {
   width: 100%;
 }
-.form-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
+.error {
+  color: var(--mat-sys-error);
 }
-.form-row * {
-  flex: 0 0 auto;
+.muted {
+  color: var(--mat-sys-on-surface-variant);
 }
 @media only screen and (max-width: 959px) {
-  div#container {
-    grid-template-columns: 1fr;
+  .annotator {
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "image"
       "list";

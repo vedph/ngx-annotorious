@@ -1,24 +1,27 @@
 import { HttpBackend, HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Observable, of, switchMap, take } from 'rxjs';
+import { inject, Injectable } from '@angular/core';
+import { map, Observable, of, shareReplay } from 'rxjs';
 
 import { DataPage } from '@myrmidon/ngx-tools';
 import { GalleryImage } from '@myrmidon/ngx-annotorious';
 import {
+  filterGalleryImages,
   GalleryFilter,
   GalleryOptions,
   GalleryService,
+  getDataPage,
 } from '@myrmidon/cadmus-img-gallery';
 
 import { IiifUri } from './iiif-uri';
 
 // ...images/resource essential metadata
 interface ManifestImageResource {
-  '@id': string;
-  '@type': string;
-  format: string;
-  height: number;
-  width: number;
+  '@id'?: string;
+  id?: string;
+  '@type'?: string;
+  format?: string;
+  height?: number;
+  width?: number;
 }
 
 /**
@@ -83,178 +86,237 @@ export interface SimpleIiifGalleryOptions extends GalleryOptions {
 }
 
 /**
+ * Get the property targeted by path in the received target object.
+ *
+ * @param target The object targeted by path.
+ * @param path The path to the property starting from the object.
+ * This is a string where each step is separated by a slash, and
+ * represents either a property name (e.g. /x), or an array property
+ * name with an indexer (e.g. /x[3]).
+ * @returns The property, or null if path not matched. When not null,
+ * the result is cast to T.
+ */
+export function getPathProperty<T>(
+  target: unknown,
+  path: string | null | undefined
+): T | null {
+  let t: any = target;
+  const steps = (path || '').split('/').filter((s) => s);
+  for (const step of steps) {
+    if (t === null || t === undefined || typeof t !== 'object') {
+      return null;
+    }
+    const m = /^([^[]*)\[(\d+)\]$/.exec(step);
+    if (m) {
+      const array = m[1] ? t[m[1]] : t;
+      if (!Array.isArray(array)) {
+        return null;
+      }
+      t = array[+m[2]];
+    } else {
+      t = t[step];
+    }
+    if (t === null || t === undefined) {
+      return null;
+    }
+  }
+  return t as T;
+}
+
+/**
+ * Get a label from a IIIF label value, which can be a string, an array of
+ * strings or language-tagged values, or a language map.
+ */
+function getLabelText(label: unknown): string | null {
+  if (!label) {
+    return null;
+  }
+  if (typeof label === 'string') {
+    return label;
+  }
+  if (Array.isArray(label)) {
+    for (const item of label) {
+      const s = getLabelText(
+        typeof item === 'object' && item && '@value' in item
+          ? (item as any)['@value']
+          : item
+      );
+      if (s) {
+        return s;
+      }
+    }
+    return null;
+  }
+  if (typeof label === 'object') {
+    // IIIF v3 language map, e.g. { "en": ["label"] }
+    for (const value of Object.values(label as object)) {
+      const s = getLabelText(value);
+      if (s) {
+        return s;
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * Simple IIIF gallery service. This is an essential IIIF service which
  * loads a list of images from a JSON manifest, extracting it from a
  * designated path. The list is cached in memory, and gets reloaded only
- * if its source parameters are changed.
+ * if its source parameters are changed, or `clearCache` is called.
+ * Images can be filtered by `title` (case-insensitive substring).
  */
 @Injectable({
   providedIn: 'root',
 })
 export class SimpleIiifGalleryService implements GalleryService {
-  private _http: HttpClient;
-  private _options?: SimpleIiifGalleryOptions;
-  private _images: SizedGalleryImage[];
-
-  constructor(handler: HttpBackend) {
-    this._images = [];
-    // avoid Authorization header from interceptors
-    // https://stackoverflow.com/questions/46469349/how-to-make-an-angular-module-to-ignore-http-interceptor-added-in-a-core-module
-    this._http = new HttpClient(handler);
-  }
-
-  private parseStepIndex(step: string): { step: string; index: number } | null {
-    const i = step.indexOf('[');
-    if (i === -1) {
-      return null;
-    }
-    return {
-      step: step.substring(0, i),
-      index: +step.substring(i + 1, step.length - 1),
-    };
-  }
+  // avoid Authorization header from interceptors by using HttpBackend
+  private readonly _http = new HttpClient(inject(HttpBackend));
+  private _sourceKey?: string;
+  private _images$?: Observable<SizedGalleryImage[]>;
 
   /**
    * Get the property targeted by path in the received target object.
-   *
-   * @param target The object targeted by path.
-   * @param path The path to the property starting from the object.
-   * This is a string where each step is separated by a slash, and
-   * represents either a property name (e.g. /x), or an array property
-   * name with an indexer (e.g. /x[3]).
-   * @returns The property, or null if path not matched. When not null,
-   * the result is cast to T.
+   * @see getPathProperty
    */
   public getProperty<T>(target: object | any[], path: string): T | null {
-    let t: any = target;
-    const steps = path.split('/').filter((s) => s);
-    for (let i = 0; i < steps.length; i++) {
-      const si = this.parseStepIndex(steps[i]);
-      if (si) {
-        if (!Array.isArray(t[si.step])) {
-          return null;
-        }
-        t = t[si.step][si.index];
-      } else {
-        t = t[steps[i]];
-      }
-      if (!t) {
-        return null;
-      }
-    }
-    return t as T;
+    return getPathProperty<T>(target, path);
   }
 
-  private readManifest(manifest: any, options: SimpleIiifGalleryOptions): void {
-    this._images = [];
+  private getSourceKey(options: SimpleIiifGalleryOptions): string {
+    return JSON.stringify([
+      options.manifestUri,
+      options.arrayPath,
+      options.resourcePath,
+      options.labelPath || '',
+      options.skip || 0,
+      options.limit || 0,
+    ]);
+  }
 
-    // read the array of images
-    const imgArray = this.getProperty<any[]>(manifest, options.arrayPath);
-    if (!imgArray) {
-      return;
+  /**
+   * Read the images from the manifest.
+   * @param manifest The manifest.
+   * @param options The options.
+   * @returns The images.
+   */
+  public readManifest(
+    manifest: unknown,
+    options: SimpleIiifGalleryOptions
+  ): SizedGalleryImage[] {
+    const images: SizedGalleryImage[] = [];
+
+    const imgArray = getPathProperty<unknown[]>(manifest, options.arrayPath);
+    if (!Array.isArray(imgArray)) {
+      return images;
     }
 
-    // add a gallery image for each image in the array
     const start =
-      options.skip && options.skip < imgArray.length ? options.skip : 0;
+      options.skip && options.skip > 0 && options.skip < imgArray.length
+        ? options.skip
+        : 0;
     const end =
-      options.limit && start + options.limit < imgArray.length
-        ? start + options.limit
+      options.limit && options.limit > 0
+        ? Math.min(start + options.limit, imgArray.length)
         : imgArray.length;
 
     for (let i = start; i < end; i++) {
-      const r = this.getProperty<ManifestImageResource>(
+      const r = getPathProperty<ManifestImageResource>(
         imgArray[i],
         options.resourcePath
       );
-      if (!r) {
+      const uri = r?.['@id'] || r?.id;
+      if (!uri) {
         continue;
       }
       const label = options.labelPath
-        ? this.getProperty<string>(imgArray[i], options.labelPath)
+        ? getLabelText(getPathProperty<unknown>(imgArray[i], options.labelPath))
         : null;
-      this._images.push({
+      images.push({
         // the ID is just the ordinal of the image in its list
         id: `${i + 1}`,
-        uri: r['@id'],
+        uri,
         title: label || `${i + 1}`,
-        // not using description right now
-        width: r.width,
-        height: r.height,
+        width: r?.width || 0,
+        height: r?.height || 0,
       });
     }
+    return images;
   }
 
-  private isSourceChanged(options: SimpleIiifGalleryOptions): boolean {
-    if (!this._options) {
-      return true;
-    }
-    return (
-      this._options.baseUri !== options.baseUri ||
-      this._options.arrayPath !== options.arrayPath ||
-      this._options.resourcePath !== options.resourcePath
-    );
-  }
-
-  private getCachedImages(
-    filter: GalleryFilter,
-    pageNumber: number,
-    pageSize: number,
-    width?: number,
-    height?: number
-  ): DataPage<SizedGalleryImage> {
-    // get filtered images
-    // TODO: implement filter
-    const filtered = this._images;
-
-    // get page
-    const skip = (pageNumber - 1) * pageSize;
-    const pageCount = Math.ceil(filtered.length / pageSize);
-
-    // empty page if beyond limit
-    if (skip > filtered.length) {
-      return {
-        total: filtered.length,
-        pageCount: pageCount,
-        pageNumber: pageNumber,
-        pageSize: pageSize,
-        items: [],
-      };
-    }
-
-    // get the slice for the requested page
-    let images = filtered.slice(skip, skip + pageSize);
-
-    // resize images if requested
-    if (width || height) {
-      images = images.map((image) => {
-        const uri = IiifUri.parse(image.uri)!;
-        let size: string;
-        // "w," or ",h" or "!w,h"
-        if (width && height) {
-          size = `!${width},${height}`;
-        } else if (width) {
-          size = `${width},`;
-        } else if (height) {
-          size = `,${height}`;
-        }
-        uri.size = size!;
-        return {
-          ...image,
-          width: width || image.width,
-          height: height || image.height,
-          uri: uri.toString(),
-        };
+  private getAllImages(
+    options: SimpleIiifGalleryOptions
+  ): Observable<SizedGalleryImage[]> {
+    const key = this.getSourceKey(options);
+    if (!this._images$ || key !== this._sourceKey) {
+      this._sourceKey = key;
+      const images$ = this._http.get<unknown>(options.manifestUri).pipe(
+        map((m) => this.readManifest(m, options)),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+      this._images$ = images$;
+      // do not cache errors
+      images$.subscribe({
+        error: () => {
+          if (this._images$ === images$) {
+            this._images$ = undefined;
+            this._sourceKey = undefined;
+          }
+        },
       });
     }
-    // return the requested page
-    return {
-      total: filtered.length,
-      pageCount: pageCount,
-      pageNumber: pageNumber,
-      pageSize: pageSize,
-      items: images,
-    };
+    return this._images$;
+  }
+
+  /**
+   * Build a resized image URI.
+   * @param uri The original IIIF URI.
+   * @param size The IIIF size.
+   * @returns The URI, or the original URI if it is not a IIIF image URI.
+   */
+  private resize(uri: string, size: string | null): string {
+    if (!size) {
+      return uri;
+    }
+    const iiif = IiifUri.parse(uri);
+    if (!iiif) {
+      return uri;
+    }
+    iiif.size = size;
+    return iiif.toString();
+  }
+
+  private getThumbnailSize(width?: number, height?: number): string | null {
+    // "w," or ",h" or "!w,h"
+    if (width && height) {
+      return `!${width},${height}`;
+    }
+    if (width) {
+      return `${width},`;
+    }
+    if (height) {
+      return `,${height}`;
+    }
+    return null;
+  }
+
+  private getTargetSize(
+    image: SizedGalleryImage,
+    options: SimpleIiifGalleryOptions
+  ): string | null {
+    const w = options.targetWidth || image.width;
+    const h = options.targetHeight || image.height;
+    // -1 is a special value to represent omission of w/h
+    if (w > 0 && h > 0) {
+      return `!${w},${h}`;
+    }
+    if (w > 0) {
+      return `${w},`;
+    }
+    if (h > 0) {
+      return `,${h}`;
+    }
+    return null;
   }
 
   /**
@@ -271,60 +333,29 @@ export class SimpleIiifGalleryService implements GalleryService {
     pageSize: number,
     options: SimpleIiifGalleryOptions
   ): Observable<DataPage<SizedGalleryImage>> {
-    // if options have changed, we must reload the manifest
-    if (this.isSourceChanged(options)) {
-      return this._http.get<any>(options.manifestUri).pipe(
-        take(1),
-        switchMap((m: any) => {
-          // once loaded, save options, read manifest and return images
-          this._options = options;
-          this.readManifest(m, options);
-          return of(
-            this.getCachedImages(
-              filter,
-              pageNumber,
-              pageSize,
-              options.width,
-              options.height
-            )
-          );
-        })
-      );
-    } else {
-      // else we just use the cached images (with the requested size)
-      return of(
-        this.getCachedImages(
-          filter,
+    const o = options;
+    const size = this.getThumbnailSize(o.width, o.height);
+    return this.getAllImages(o).pipe(
+      map((images) => {
+        const page = getDataPage(
+          filterGalleryImages(images, filter),
           pageNumber,
-          pageSize,
-          options.width,
-          options.height
-        )
-      );
-    }
-  }
-
-  private buildUri(id: string, options: SimpleIiifGalleryOptions): string {
-    // use options.width, options.height, etc.
-    const i = +id - 1;
-    const image = this._images[i];
-    // override width/height
-    const w = options.targetWidth || image.width;
-    const h = options.targetHeight || image.height;
-    const uri = IiifUri.parse(image.uri)!;
-    // -1 is a special value to represent omission of w/h
-    if (w > -1 && h > -1) {
-      uri.size = `!${w},${h}`;
-    } else if (w === -1) {
-      uri.size = `,${h}`;
-    } else if (h === -1) {
-      uri.size = `${w},`;
-    }
-    return uri.toString();
+          pageSize
+        );
+        return {
+          ...page,
+          items: page.items.map((image) => ({
+            ...image,
+            uri: this.resize(image.uri, size),
+          })),
+        };
+      })
+    );
   }
 
   /**
-   * Get the specified image.
+   * Get the specified image, sized according to options targetWidth and
+   * targetHeight.
    *
    * @param id The image ID, which here is just the ordinal number
    * of the image in its list.
@@ -334,36 +365,30 @@ export class SimpleIiifGalleryService implements GalleryService {
     id: string,
     options: SimpleIiifGalleryOptions
   ): Observable<SizedGalleryImage | null> {
-    // load if options changed
-    if (this.isSourceChanged(options)) {
-      return this._http.get<any>(options.baseUri).pipe(
-        take(1),
-        switchMap((m: any) => {
-          this._options = options;
-          this.readManifest(m, options);
-          const i = +id - 1;
-          if (i >= this._images.length) {
-            return of(null);
-          }
-          // rebuild the URI as size must be drawn from options
-          const image = {
-            ...this._images[i],
-            uri: this.buildUri(id, options),
-          };
-          return of(image);
-        })
-      );
-    } else {
-      const i = +id - 1;
-      if (i >= this._images.length) {
-        return of(null);
-      }
-      // rebuild the URI as size must be drawn from options
-      const image = {
-        ...this._images[i],
-        uri: this.buildUri(id, options),
-      };
-      return of(image);
+    const o = options;
+    const i = +id - 1;
+    if (!Number.isInteger(i) || i < 0) {
+      return of(null);
     }
+    return this.getAllImages(o).pipe(
+      map((images) => {
+        const image = images.find((img) => img.id === id);
+        if (!image) {
+          return null;
+        }
+        return {
+          ...image,
+          uri: this.resize(image.uri, this.getTargetSize(image, o)),
+        };
+      })
+    );
+  }
+
+  /**
+   * Clear the cached manifest images.
+   */
+  public clearCache(): void {
+    this._images$ = undefined;
+    this._sourceKey = undefined;
   }
 }

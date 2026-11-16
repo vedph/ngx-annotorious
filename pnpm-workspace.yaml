@@ -1,0 +1,13 @@
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
+minimumReleaseAgeExclude:
+  - '@testing-library/user-event@14.6.12'
+
+# zone.js is an optional peer of @angular/core, not used in this zoneless
+# workspace: do not hoist it, or the Vitest runner would try loading it
+hoistPattern:
+  - '*'
+  - '!zone.js'

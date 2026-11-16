@@ -1,92 +1,90 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   effect,
   input,
-  OnDestroy,
-  OnInit,
-  output,
+  model,
+  untracked,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-} from '@angular/forms';
-import { Subscription } from 'rxjs';
 
-import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import {
+  MatButtonToggleChange,
+  MatButtonToggleModule,
+} from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
+/**
+ * A tool in the image annotator toolbar.
+ */
 export interface ImgAnnotatorToolbarTool {
+  /**
+   * The tool ID, as registered in Annotorious (e.g. `rectangle`).
+   */
   id: string;
+  /**
+   * The Material icon name.
+   */
   icon: string;
+  /**
+   * The tooltip and accessible label.
+   */
   tip: string;
 }
 
 /**
- * The toolbar for the image annotator.
+ * The default tools available in Annotorious.
+ */
+export const DEFAULT_IMG_ANNOTATOR_TOOLS: readonly ImgAnnotatorToolbarTool[] =
+  Object.freeze([
+    { id: 'rectangle', icon: 'rectangle', tip: 'Rectangle' },
+    { id: 'polygon', icon: 'polyline', tip: 'Polygon' },
+  ]);
+
+/**
+ * The toolbar for the image annotator. Bind its `tool` model to the
+ * annotator directive's `tool` input, e.g. `[(tool)]="tool"`.
  */
 @Component({
   selector: 'img-annotator-toolbar',
   templateUrl: './img-annotator-toolbar.component.html',
-  styleUrls: ['./img-annotator-toolbar.component.css'],
-  imports: [
-    FormsModule,
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatButtonToggleModule,
-    MatIconModule,
-    MatTooltipModule,
-  ],
+  styleUrl: './img-annotator-toolbar.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [MatButtonToggleModule, MatIconModule, MatTooltipModule],
 })
-export class ImgAnnotatorToolbarComponent implements OnInit, OnDestroy {
-  private _sub?: Subscription;
-
+export class ImgAnnotatorToolbarComponent {
   /**
    * The tools to display in the toolbar.
    */
-  public readonly tools = input<ImgAnnotatorToolbarTool[]>([
-    { id: 'rectangle', icon: 'rectangle', tip: 'Rectangle' },
-    { id: 'polygon', icon: 'polyline', tip: 'Polygon' },
-    // TODO: enable when plugins are available
-    // { id: 'circle', icon: 'radio_button_unchecked', tip: 'Circle' },
-    // { id: 'ellipse', icon: 'exposure_zero', tip: 'Ellipse' },
-    // { id: 'freehand', icon: 'gesture', tip: 'Freehand' },
-  ]);
+  public readonly tools = input<readonly ImgAnnotatorToolbarTool[]>(
+    DEFAULT_IMG_ANNOTATOR_TOOLS
+  );
 
   /**
-   * Emitted whenever the tool changes.
+   * The selected tool ID.
    */
-  public readonly toolChange = output<string>();
+  public readonly tool = model<string>('rectangle');
 
-  public form: FormGroup;
+  /**
+   * True to disable the toolbar.
+   */
+  public readonly disabled = input<boolean>(false);
 
-  constructor(formBuilder: FormBuilder) {
-    this.form = formBuilder.group({
-      tool: ['rectangle'],
-    });
-    // if tools change, set the first one as the current tool
+  constructor() {
+    // ensure that the selected tool is one of the available tools
     effect(() => {
-      if (this.tools().length) {
-        this.form.get('tool')!.setValue(this.tools()[0].id);
-      }
+      const tools = this.tools();
+      untracked(() => {
+        if (tools.length && !tools.some((t) => t.id === this.tool())) {
+          this.tool.set(tools[0].id);
+        }
+      });
     });
   }
 
-  public ngOnInit(): void {
-    // ensure that a first value is emitted
-    this.toolChange.emit(this.form.value.tool);
-
-    // whenever form value changes, emit toolChange
-    this._sub = this.form.valueChanges.subscribe((value) => {
-      console.log('Annotator bar: tool change', value.tool);
-      this.toolChange.emit(value.tool);
-    });
-  }
-
-  public ngOnDestroy(): void {
-    this._sub?.unsubscribe();
+  protected onChange(event: MatButtonToggleChange): void {
+    if (event.value) {
+      this.tool.set(event.value);
+    }
   }
 }

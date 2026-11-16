@@ -1,7 +1,7 @@
 {
   "name": "@myrmidon/cadmus-img-gallery-iiif",
-  "version": "9.0.0",
-  "description": "Cadmus - minimalist image gallery.",
+  "version": "10.0.0",
+  "description": "Cadmus - simple IIIF image gallery service.",
   "keywords": [
     "Cadmus",
     "bricks"
@@ -15,11 +15,12 @@
     "name": "Daniele Fusi"
   },
   "peerDependencies": {
-    "@angular/common": "^20.0.0",
-    "@angular/core": "^20.0.0",
-    "@myrmidon/ngx-tools": "^2.0.0",
-    "@myrmidon/ngx-annotorious": "^1.0.0",
-    "@myrmidon/cadmus-img-gallery": "^9.0.0"
+    "@angular/common": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@myrmidon/cadmus-img-gallery": "^10.0.0",
+    "@myrmidon/ngx-annotorious": "^2.0.0",
+    "@myrmidon/ngx-tools": "^3.0.0",
+    "rxjs": "^7.8.0"
   },
   "dependencies": {
     "tslib": "^2.3.0"

@@ -1,49 +1,59 @@
-@if (list) {
-<div>
-  @if (list!.annotations$ | async; as annotations) {
-  <table>
-    <thead>
-      <tr>
-        <th></th>
-        <th>annotation</th>
-        <th class="noif-lt-md">ID</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (a of annotations; track a.id; let i = $index) {
-      <tr [class.selected]="a === (list!.selectedAnnotation$ | async)">
-        <td class="fit-width">
-          <button
-            type="button"
-            mat-icon-button
-            (click)="selectAnnotation(a)"
-            matTooltip="Select annotation"
-          >
-            <mat-icon>check_circle</mat-icon>
-          </button>
-          <button
-            type="button"
-            mat-icon-button
-            (click)="removeAnnotationAt(i)"
-            matTooltip="Remove annotation"
-          >
-            <mat-icon class="mat-warn">delete</mat-icon>
-          </button>
-          <button
-            type="button"
-            mat-icon-button
-            (click)="editAnnotationAt(i)"
-            matTooltip="Edit annotation"
-          >
-            <mat-icon class="mat-primary">edit</mat-icon>
-          </button>
-        </td>
-        <td>{{ a | objectToString : annotationToString() }}</td>
-        <td class="muted noif-lt-md">{{ a.id }}</td>
-      </tr>
-      }
-    </tbody>
-  </table>
-  }
-</div>
+@if (annotations().length) {
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>annotation</th>
+      <th class="noif-lt-md">ID</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (a of annotations(); track a.id; let i = $index) {
+    <tr [class.selected]="i === selectedIndex()">
+      <td class="fit-width">
+        <button
+          type="button"
+          mat-icon-button
+          matTooltip="Select annotation"
+          (click)="toggleSelection(a)"
+        >
+          <mat-icon>{{
+            i === selectedIndex() ? "check_circle" : "radio_button_unchecked"
+          }}</mat-icon>
+        </button>
+        <button
+          type="button"
+          mat-icon-button
+          class="mat-primary"
+          matTooltip="Edit annotation"
+          (click)="editAnnotationAt(i)"
+        >
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button
+          type="button"
+          mat-icon-button
+          class="mat-warn"
+          matTooltip="Remove annotation"
+          (click)="removeAnnotationAt(i)"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+        <button
+          type="button"
+          mat-icon-button
+          matTooltip="Dump to console"
+          (click)="dump(i)"
+        >
+          <mat-icon>bug_report</mat-icon>
+        </button>
+      </td>
+      <td>{{ annotationToString()(a) }}</td>
+      <td class="muted noif-lt-md">{{ a.id }}</td>
+    </tr>
+    }
+  </tbody>
+</table>
+} @else {
+<p class="muted">No annotations.</p>
 }

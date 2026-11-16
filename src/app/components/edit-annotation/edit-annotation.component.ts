@@ -1,37 +1,37 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   effect,
-  ElementRef,
-  model,
+  input,
   output,
-  ViewChild,
+  signal,
+  untracked,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormControl,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { form, FormField, maxLength, required } from '@angular/forms/signals';
 
+import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
+
+import { ImageAnnotation } from '@annotorious/annotorious';
 
 import {
-  GuidService,
   ListAnnotation,
+  newGuid,
 } from '../../../../projects/myrmidon/ngx-annotorious/src/public-api';
 
+/**
+ * Demo annotation editor: the payload is just a text, which is also
+ * stored as the first (commenting) body of the Annotorious annotation.
+ */
 @Component({
   selector: 'app-edit-annotation',
   templateUrl: './edit-annotation.component.html',
-  styleUrls: ['./edit-annotation.component.css'],
+  styleUrl: './edit-annotation.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
-    ReactiveFormsModule,
+    FormField,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
@@ -39,83 +39,65 @@ import {
   ],
 })
 export class EditAnnotationComponent {
-  public readonly annotation = model<ListAnnotation<any> | undefined>();
-  public readonly cancel = output();
+  /**
+   * The annotation to edit.
+   */
+  public readonly annotation = input<ListAnnotation<string> | undefined>();
 
-  @ViewChild('txt') txtElementRef?: ElementRef<HTMLTextAreaElement>;
+  /**
+   * Emitted with the edited annotation when the user saves.
+   */
+  public readonly annotationSave = output<ListAnnotation<string>>();
 
-  public text: FormControl<string | null>;
-  public form: FormGroup;
+  /**
+   * Emitted when the user cancels.
+   */
+  public readonly editorClose = output();
 
-  constructor(formBuilder: FormBuilder, private _guidService: GuidService) {
-    this.text = formBuilder.control(null, {
-      validators: [Validators.required, Validators.maxLength(100)],
-      nonNullable: true,
-    });
-    this.form = formBuilder.group({
-      text: this.text,
-    });
-    // when annotation changes, update form
+  protected readonly model = signal({ text: '' });
+  protected readonly editForm = form(this.model, (p) => {
+    required(p.text, { message: 'text required' });
+    maxLength(p.text, 100, { message: 'text too long' });
+  });
+
+  constructor() {
     effect(() => {
-      this.updateForm(this.annotation());
+      const annotation = this.annotation();
+      untracked(() => {
+        const text =
+          annotation?.payload || annotation?.value.bodies?.[0]?.value || '';
+        this.editForm().reset({ text });
+      });
     });
   }
 
-  public ngAfterViewInit() {
-    setTimeout(() => {
-      this.txtElementRef?.nativeElement.focus();
-    });
-  }
-
-  private updateForm(annotation?: ListAnnotation<any>): void {
-    if (!annotation) {
-      this.form.reset();
-      return;
-    }
-
-    this.text.setValue(
-      annotation.value.bodies?.length
-        ? annotation.value.bodies[0].value || ''
-        : ''
-    );
-    this.form.markAsPristine();
-  }
-
-  private getAnnotation(): ListAnnotation<any> {
-    const annotation = { ...this.annotation()! };
-
-    if (annotation.value.bodies!.length === 0) {
-      annotation.value.bodies.push({
-        id: this._guidService.getGuid(),
-        annotation: annotation.id,
+  private buildAnnotation(text: string): ListAnnotation<string> {
+    const source = this.annotation()!;
+    const bodies = [...(source.value.bodies || [])];
+    if (bodies.length) {
+      bodies[0] = { ...bodies[0], value: text };
+    } else {
+      bodies.push({
+        id: newGuid(),
+        annotation: source.id,
         type: 'TextualBody',
-        value: this.text.value || '',
+        value: text,
         purpose: 'commenting',
       });
-    } else {
-      annotation.value!.bodies[0].value = this.text.value || '';
     }
-
-    let a: ListAnnotation<any> = {
-      id: annotation.id,
-      // here the annotation value is just a string, but when it's an object,
-      // we can leave it out as payload will be used instead anyway
-      value: annotation.value,
-      image: annotation.image,
-      payload: this.text.value,
-    };
-
-    return a;
+    const value: ImageAnnotation = { ...source.value, bodies };
+    return { ...source, value, payload: text };
   }
 
-  public close(): void {
-    this.cancel.emit();
+  protected close(): void {
+    this.editorClose.emit();
   }
 
-  public save(): void {
-    if (this.form.invalid) {
+  protected save(event?: Event): void {
+    event?.preventDefault();
+    if (!this.annotation() || this.editForm().invalid()) {
       return;
     }
-    this.annotation.set(this.getAnnotation());
+    this.annotationSave.emit(this.buildAnnotation(this.model().text.trim()));
   }
 }

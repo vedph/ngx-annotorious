@@ -1,14 +1,17 @@
-import { BehaviorSubject, Observable, take } from 'rxjs';
+import { computed, Signal, signal, WritableSignal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { ComponentType } from '@angular/cdk/portal';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 
-import { ImageAnnotator, ImageAnnotation } from '@annotorious/annotorious';
+import { ImageAnnotation, ImageAnnotator } from '@annotorious/annotorious';
 
-import { GalleryImage } from '../../directives/img-annotator.directive';
+import { GalleryImage } from '../../models';
+import { bindAnnotatorEvents } from '../../annotator-events';
 
 /**
- * An annotation included in a list. Each annotation is paired
- * with custom payload data, edited in a dialog using as content
- * the component specified by editorComponent.
+ * An annotation included in a list. Each Annotorious annotation (`value`)
+ * is paired with custom payload data, edited in a dialog using as content
+ * the component specified by the list `editorComponent`.
  */
 export interface ListAnnotation<T> {
   id: string;
@@ -18,230 +21,214 @@ export interface ListAnnotation<T> {
 }
 
 /**
+ * The annotator API surface used by `ImgAnnotationList`.
+ */
+export type ListAnnotator = Pick<
+  ImageAnnotator,
+  | 'on'
+  | 'off'
+  | 'setAnnotations'
+  | 'clearAnnotations'
+  | 'removeAnnotation'
+  | 'updateAnnotation'
+  | 'getAnnotationById'
+  | 'setSelected'
+  | 'cancelSelected'
+>;
+
+/**
+ * Options for creating an `ImgAnnotationList`.
+ */
+export interface ImgAnnotationListOptions {
+  /**
+   * The Annotorious annotator.
+   */
+  annotator: ListAnnotator;
+  /**
+   * The component used as the content of the dialog editing a list
+   * annotation. It receives a `ListAnnotation<T>` as its dialog data,
+   * and must close the dialog returning the edited `ListAnnotation<T>`,
+   * or nothing to cancel.
+   */
+  editorComponent: ComponentType<unknown>;
+  /**
+   * The Material dialog service.
+   */
+  dialog: MatDialog;
+  /**
+   * The optional base configuration for the editor dialog.
+   */
+  dialogConfig?: MatDialogConfig;
+  /**
+   * The image being annotated.
+   */
+  image?: GalleryImage;
+}
+
+const EMPTY_IMAGE: GalleryImage = Object.freeze({ id: '', uri: '', title: '' });
+
+/**
  * A list of image annotations. This list empowers an image annotations list
- * component by maintaining a list of annotation/payload pairs for each
- * annotation, where the payload type is defined by T.
- * This list requires an instance of Annotorious annotator, and the type
- * of the editor component to use for editing each annotation. It will
- * then use the annotator to keep in synch with Annotorious, and a dialog
- * wrapper to edit each annotation via the provided editor.
- * Consumers should thus provide an annotation editor and a corresponding
- * dialog component wrapper, which wires the annotation to the editor.
+ * component by maintaining a list of annotation/payload pairs, where the
+ * payload type is defined by T.
+ *
+ * The list subscribes to the annotator events, so that it is automatically
+ * kept in synch with the user's actions on the image: when a shape is drawn,
+ * the editor dialog is opened to edit its payload (and the shape is removed
+ * if the user cancels); when a shape is moved, resized or deleted, the list
+ * is updated accordingly; the selection is synchronized in both directions.
+ *
+ * All the state is exposed via read-only signals. Call `dispose` when
+ * the list is no longer used, to unsubscribe from the annotator events.
  */
 export class ImgAnnotationList<T> {
-  private _annotations$: BehaviorSubject<ListAnnotation<T>[]>;
-  private _selectedAnnotation$: BehaviorSubject<ListAnnotation<T> | null>;
+  private readonly _annotations = signal<ListAnnotation<T>[]>([]);
+  private readonly _selectedId = signal<string | null>(null);
+  private readonly _editing = signal(false);
+  private _annotator: ListAnnotator;
+  private _unbind?: () => void;
 
-  private _editingAnnotation?: boolean;
+  /**
+   * The component used to edit list annotations.
+   */
+  public editorComponent: ComponentType<unknown>;
+
+  /**
+   * The Material dialog service.
+   */
+  public readonly dialog: MatDialog;
+
+  /**
+   * The base configuration for the editor dialog.
+   */
+  public dialogConfig: MatDialogConfig;
+
+  /**
+   * The image being annotated.
+   */
+  public readonly image: WritableSignal<GalleryImage | undefined>;
 
   /**
    * The annotations in this list.
    */
-  public get annotations$(): Observable<ListAnnotation<T>[]> {
-    return this._annotations$.asObservable();
-  }
+  public readonly annotations: Signal<ListAnnotation<T>[]> =
+    this._annotations.asReadonly();
 
   /**
    * The selected annotation, if any.
    */
-  public get selectedAnnotation$(): Observable<ListAnnotation<T> | null> {
-    return this._selectedAnnotation$.asObservable();
+  public readonly selectedAnnotation: Signal<ListAnnotation<T> | null> =
+    computed(() => {
+      const id = this._selectedId();
+      return id ? this._annotations().find((a) => a.id === id) || null : null;
+    });
+
+  /**
+   * The index of the selected annotation, or -1.
+   */
+  public readonly selectedIndex: Signal<number> = computed(() => {
+    const id = this._selectedId();
+    return id ? this._annotations().findIndex((a) => a.id === id) : -1;
+  });
+
+  /**
+   * True while an annotation is being edited in the dialog.
+   */
+  public readonly editing: Signal<boolean> = this._editing.asReadonly();
+
+  /**
+   * The annotator this list is bound to.
+   */
+  public get annotator(): ListAnnotator {
+    return this._annotator;
+  }
+
+  constructor(options: ImgAnnotationListOptions) {
+    this._annotator = options.annotator;
+    this.editorComponent = options.editorComponent;
+    this.dialog = options.dialog;
+    this.dialogConfig = options.dialogConfig || {};
+    this.image = signal(options.image);
+    this.bind();
+  }
+
+  private bind(): void {
+    this._unbind = bindAnnotatorEvents(this._annotator, {
+      createAnnotation: (a) => void this.handleCreate(a),
+      deleteAnnotation: (a) => this.handleDelete(a),
+      updateAnnotation: (a) => this.handleUpdate(a),
+      selectionChanged: (a) => this.handleSelectionChange(a?.[0]),
+    });
   }
 
   /**
-   * The function used to build a string from a list annotation object,
-   * summarizing its content appropriately.
+   * Bind this list to another annotator, e.g. when the annotator has been
+   * recreated. The list annotations are pushed into the new annotator.
+   * @param annotator The new annotator.
    */
-  public annotationToString: (annotation: ListAnnotation<T>) => string | null =
-    (a: ListAnnotation<T>) => {
-      return a.value.bodies.length ? a.value.bodies[0].value || null : a.id;
-    };
-
-  /**
-   * The image to be annotated.
-   */
-  public image?: GalleryImage;
-
-  constructor(
-    public annotator: ImageAnnotator,
-    public editorComponent: any,
-    public dialog: MatDialog,
-    public dlgConfig: MatDialogConfig
-  ) {
-    this._annotations$ = new BehaviorSubject<ListAnnotation<T>[]>([]);
-    this._selectedAnnotation$ = new BehaviorSubject<ListAnnotation<T> | null>(
-      null
+  public attach(annotator: ListAnnotator): void {
+    if (annotator === this._annotator) {
+      return;
+    }
+    this._unbind?.();
+    this._annotator = annotator;
+    this._selectedId.set(null);
+    this.bind();
+    annotator.setAnnotations(
+      this._annotations().map((a) => a.value),
+      true
     );
   }
 
   /**
-   * Gets the annotations.
+   * Unsubscribe from the annotator events.
+   */
+  public dispose(): void {
+    this._unbind?.();
+    this._unbind = undefined;
+  }
+
+  /**
+   * Get the annotations.
    * @returns The annotations in this list.
    */
   public getAnnotations(): ListAnnotation<T>[] {
-    return this._annotations$.value;
+    return this._annotations();
   }
 
   /**
-   * Removes all the annotations.
+   * Remove all the annotations.
    */
   public clearAnnotations(): void {
-    this._annotations$.next([]);
-    this.annotator.clearAnnotations();
+    this._selectedId.set(null);
+    this._annotations.set([]);
+    this._annotator.clearAnnotations();
   }
 
   /**
-   * Set the annotations.
+   * Set the annotations, replacing the existing ones.
    * @param annotations The annotations to set.
    */
-  public setAnnotations(annotations: ListAnnotation<T>[]): void {
-    this._annotations$.next(annotations);
-    this.annotator.setAnnotations(annotations.map((a) => a.value));
+  public setAnnotations(annotations: ListAnnotation<T>[] | null | undefined): void {
+    const list = [...(annotations || [])];
+    this._selectedId.set(null);
+    this._annotations.set(list);
+    this._annotator.setAnnotations(
+      list.map((a) => a.value),
+      true
+    );
   }
 
   /**
-   * Delete the annotation with the specified ID.
-   * @param id The annotation id.
+   * Remove the annotation with the specified ID.
+   * @param id The annotation ID.
    */
   public removeAnnotation(id: string): void {
-    // if annotation is selected, deselect it
-    if (this._selectedAnnotation$.value?.id === id) {
-      this._selectedAnnotation$.next(null);
+    if (this._selectedId() === id) {
+      this._selectedId.set(null);
     }
-    // delete from annotorious
-    this.annotator.removeAnnotation(id);
-    // delete from local
-    this._annotations$.next([
-      ...this._annotations$.value.filter((a) => a.id !== id),
-    ]);
-  }
-
-  /**
-   * Edit the specified annotation in the editor dialog.
-   * @param annotation The annotation to edit.
-   * @returns The edited annotation or null if cancelled.
-   */
-  private getEditedAnnotation(
-    annotation: ImageAnnotation
-  ): Promise<ListAnnotation<T> | null> {
-    this._editingAnnotation = true;
-    return new Promise<ListAnnotation<T> | null>((resolve) => {
-      // get payload from an existing annotation
-      const payload = this._annotations$.value.find(
-        (a) => a.id === annotation.id
-      )?.payload;
-
-      // edit in dialog
-      const dialogRef = this.dialog.open(this.editorComponent, {
-        ...this.dlgConfig,
-        data: {
-          id: annotation.id,
-          image: this.image!,
-          value: annotation,
-          payload,
-        },
-      });
-      dialogRef
-        .afterClosed()
-        .pipe(take(1))
-        .subscribe((edited: ListAnnotation<T>) => {
-          this._editingAnnotation = false;
-          // return the edited annotation or null if cancelled
-          edited ? resolve(edited) : resolve(null);
-        });
-    });
-  }
-
-  /**
-   * Edit the specified annotation.
-   * @param annotation The annotation to edit.
-   */
-  public editAnnotation(annotation: ImageAnnotation): void {
-    this.getEditedAnnotation(annotation).then((edited) => {
-      if (edited) {
-        this.saveAnnotation(edited);
-      }
-    });
-  }
-
-  /**
-   * Deselect the selected annotation if any.
-   */
-  private deselectAnnotation(): void {
-    if (this._selectedAnnotation$.value) {
-      this.annotator.setSelected();
-      this._selectedAnnotation$.next(null);
-    }
-  }
-
-  /**
-   * Save the specified list annotation.
-   * @param annotation The annotation.
-   * @param isNew True if the annotation is new.
-   */
-  private saveAnnotation(
-    annotation: ListAnnotation<any>,
-    isNew?: boolean
-  ): void {
-    const annotations = [...this._annotations$.value];
-
-    // update
-    if (isNew) {
-      this._annotations$.next([...annotations, annotation]);
-      this.annotator.updateAnnotation(annotation.value);
-      this._selectedAnnotation$.next(annotation);
-    } else {
-      const i = this._annotations$.value.findIndex(
-        (a) => a.id === annotation.id
-      );
-      annotations.splice(i, 1, annotation);
-      this._annotations$.next(annotations);
-      this.annotator.updateAnnotation(annotation);
-    }
-  }
-
-  /**
-   * Select the specified annotation.
-   * @param annotation The annotation to select or undefined or null
-   * to deselect.
-   */
-  public selectAnnotation(annotation?: ListAnnotation<T>): void {
-    this.annotator.setSelected();
-
-    if (annotation) {
-      this._selectedAnnotation$.next(annotation);
-      this.annotator.setSelected(annotation.id, true);
-    } else {
-      this._selectedAnnotation$.next(null);
-    }
-  }
-
-  /**
-   * Edit the annotation at the specified index.
-   * @param index The annotation index.
-   */
-  public editAnnotationAt(index: number): void {
-    const annotation = this._annotations$.value[index];
-    if (annotation) {
-      this.getEditedAnnotation(annotation.value).then((edited) => {
-        if (edited) {
-          this.saveAnnotation(edited);
-        }
-      });
-    }
-  }
-
-  /**
-   * Select the annotation at the specified index.
-   * @param index The annotation index.
-   */
-  public selectAnnotationAt(index: number): void {
-    if (index === -1) {
-      this.deselectAnnotation();
-    } else {
-      this._selectedAnnotation$.next(this._annotations$.value[index]);
-      this.annotator.setSelected(this._selectedAnnotation$.value!.id, true);
-    }
+    this._annotator.removeAnnotation(id);
+    this._annotations.update((list) => list.filter((a) => a.id !== id));
   }
 
   /**
@@ -249,73 +236,200 @@ export class ImgAnnotationList<T> {
    * @param index The annotation index.
    */
   public removeAnnotationAt(index: number): void {
-    const annotation = this._annotations$.value[index];
+    const annotation = this._annotations()[index];
+    if (annotation) {
+      this.removeAnnotation(annotation.id);
+    }
+  }
 
-    // locally deselect annotation before deleting it
-    if (this._selectedAnnotation$.value?.id === annotation.id) {
-      this._selectedAnnotation$.next(null);
+  /**
+   * Select the specified annotation, or deselect if null/undefined.
+   * @param annotation The annotation or its ID.
+   * @param editable True to make the selected shape editable.
+   */
+  public selectAnnotation(
+    annotation?: ListAnnotation<T> | string | null,
+    editable = true
+  ): void {
+    const id = typeof annotation === 'string' ? annotation : annotation?.id;
+    if (!id || !this._annotations().some((a) => a.id === id)) {
+      this.deselectAnnotation();
+      return;
+    }
+    this._selectedId.set(id);
+    this._annotator.setSelected(id, editable);
+  }
+
+  /**
+   * Select the annotation at the specified index, or deselect if -1
+   * or out of range.
+   * @param index The annotation index.
+   * @param editable True to make the selected shape editable.
+   */
+  public selectAnnotationAt(index: number, editable = true): void {
+    this.selectAnnotation(this._annotations()[index], editable);
+  }
+
+  /**
+   * Deselect the selected annotation if any.
+   */
+  public deselectAnnotation(): void {
+    this._selectedId.set(null);
+    this._annotator.cancelSelected();
+  }
+
+  /**
+   * Edit the specified annotation in the editor dialog.
+   * @param annotation The annotation to edit, or its ID.
+   * @returns Promise resolving to true if saved, false if cancelled.
+   */
+  public editAnnotation(
+    annotation: ImageAnnotation | ListAnnotation<T> | string
+  ): Promise<boolean> {
+    const id = typeof annotation === 'string' ? annotation : annotation.id;
+    const existing = this._annotations().find((a) => a.id === id);
+    if (!existing) {
+      return Promise.resolve(false);
+    }
+    return this.editAndSave(existing, false);
+  }
+
+  /**
+   * Edit the annotation at the specified index.
+   * @param index The annotation index.
+   * @returns Promise resolving to true if saved, false if cancelled.
+   */
+  public editAnnotationAt(index: number): Promise<boolean> {
+    const annotation = this._annotations()[index];
+    return annotation
+      ? this.editAndSave(annotation, false)
+      : Promise.resolve(false);
+  }
+
+  private async openEditor(
+    annotation: ListAnnotation<T>
+  ): Promise<ListAnnotation<T> | null> {
+    this._editing.set(true);
+    try {
+      // the editor gets a copy, so that it can freely mutate it
+      const data: ListAnnotation<T> = structuredCloneSafe(annotation);
+      const dialogRef = this.dialog.open(this.editorComponent, {
+        ...this.dialogConfig,
+        data,
+      });
+      const edited = await firstValueFrom(dialogRef.afterClosed(), {
+        defaultValue: undefined,
+      });
+      return (edited as ListAnnotation<T> | undefined) || null;
+    } finally {
+      this._editing.set(false);
+    }
+  }
+
+  private async editAndSave(
+    annotation: ListAnnotation<T>,
+    isNew: boolean
+  ): Promise<boolean> {
+    if (this._editing()) {
+      return false;
+    }
+    const edited = await this.openEditor(annotation);
+    if (!edited) {
+      return false;
+    }
+    this.saveAnnotation(edited, isNew);
+    return true;
+  }
+
+  /**
+   * Save the specified list annotation.
+   * @param annotation The annotation.
+   * @param isNew True if the annotation is new.
+   */
+  private saveAnnotation(annotation: ListAnnotation<T>, isNew: boolean): void {
+    // the shape is owned by Annotorious: keep its current target,
+    // which might have changed while the editor was open
+    const current = this._annotator.getAnnotationById(annotation.id);
+    const value: ImageAnnotation = current
+      ? { ...annotation.value, id: annotation.id, target: current.target }
+      : { ...annotation.value, id: annotation.id };
+    const saved: ListAnnotation<T> = { ...annotation, value };
+
+    if (current) {
+      this._annotator.updateAnnotation(value);
+    } else {
+      this._annotator.setAnnotations([value], false);
     }
 
-    // remove from annotorious
-    this.annotator.removeAnnotation(annotation.id);
-
-    // remove from local
-    const annotations = [...this._annotations$.value];
-    annotations.splice(index, 1);
-    this._annotations$.next(annotations);
+    const list = this._annotations();
+    const i = list.findIndex((a) => a.id === saved.id);
+    if (i === -1) {
+      this._annotations.set([...list, saved]);
+    } else {
+      this._annotations.set(list.map((a, j) => (j === i ? saved : a)));
+    }
+    if (isNew) {
+      this._selectedId.set(saved.id);
+    }
   }
 
   // #region Annotorious event handlers
-  /**
-   * Handle the Annotorious create event.
-   * @param event The event.
-   */
-  public async onCreateAnnotation(annotation: ImageAnnotation) {
-    console.log('lst:onCreateAnnotation');
-
-    const edited = await this.getEditedAnnotation(annotation);
-    if (edited) {
-      this.saveAnnotation(edited, true);
-    } else {
-      console.log('annotation creation cancelled');
-      this.annotator.removeAnnotation(annotation.id);
+  private async handleCreate(annotation: ImageAnnotation): Promise<void> {
+    // a new annotation while editing cannot be handled: drop it
+    if (this._editing()) {
+      this._annotator.removeAnnotation(annotation.id);
+      return;
+    }
+    const saved = await this.editAndSave(
+      {
+        id: annotation.id,
+        image: this.image() || EMPTY_IMAGE,
+        value: annotation,
+      },
+      true
+    );
+    if (!saved) {
+      this._annotator.removeAnnotation(annotation.id);
     }
   }
 
-  /**
-   * Handle the Annotorious select event to keep the selection
-   * in synch.
-   * @param annotation The annotation or undefined for no
-   * selection.
-   */
-  public onSelectionChange(annotation?: ImageAnnotation) {
-    console.log('lst:onSelectionChange');
-    // if editing, ignore selection change
-    if (this._editingAnnotation) {
+  private handleUpdate(annotation: ImageAnnotation): void {
+    const list = this._annotations();
+    const i = list.findIndex((a) => a.id === annotation.id);
+    if (i > -1) {
+      this._annotations.set(
+        list.map((a, j) => (j === i ? { ...a, value: annotation } : a))
+      );
+    }
+  }
+
+  private handleSelectionChange(annotation?: ImageAnnotation): void {
+    // while editing, keep the current selection
+    if (this._editing()) {
       return;
     }
-
-    // update local selection
-    this._selectedAnnotation$.next(
-      annotation
-        ? this._annotations$.value.find((a) => a.id === annotation.id) || null
+    this._selectedId.set(
+      annotation && this._annotations().some((a) => a.id === annotation.id)
+        ? annotation.id
         : null
     );
   }
 
-  /**
-   * Handle the Annotorious delete event to keep the list in synch.
-   * @param event The event.
-   */
-  public onDeleteAnnotation(annotation: ImageAnnotation) {
-    console.log('lst:onDeleteAnnotation');
-    // remove from local
-    const annotations = [...this._annotations$.value];
-    const i = annotations.findIndex((a) => a.id === annotation.id);
-    if (i > -1) {
-      annotations.splice(i, 1);
-      this._annotations$.next(annotations);
+  private handleDelete(annotation: ImageAnnotation): void {
+    if (this._selectedId() === annotation.id) {
+      this._selectedId.set(null);
     }
+    this._annotations.update((list) =>
+      list.filter((a) => a.id !== annotation.id)
+    );
   }
   // #endregion
+}
+
+function structuredCloneSafe<T>(value: T): T {
+  try {
+    return structuredClone(value);
+  } catch {
+    return JSON.parse(JSON.stringify(value));
+  }
 }

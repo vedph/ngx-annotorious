@@ -2,23 +2,27 @@ table {
   width: 100%;
   border-collapse: collapse;
 }
-.muted {
-  color: silver;
-}
-tr:nth-child(odd) {
-  background-color: #fafafa;
-}
 th {
-  font-weight: normal;
-  color: silver;
-  text-align: left;
+  font: var(--mat-sys-label-medium);
+  color: var(--mat-sys-on-surface-variant);
+  text-align: start;
 }
-tr.selected {
-  border: 1px solid orange;
+tbody tr {
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+tbody tr:nth-child(odd) {
+  background-color: var(--mat-sys-surface-container-low);
+}
+tbody tr.selected {
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
 }
 td.fit-width {
   width: 1px;
   white-space: nowrap;
+}
+.muted {
+  color: var(--mat-sys-on-surface-variant);
 }
 @media only screen and (max-width: 959px) {
   .noif-lt-md {

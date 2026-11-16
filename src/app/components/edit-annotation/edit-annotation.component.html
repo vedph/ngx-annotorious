@@ -1,34 +1,29 @@
-<fieldset>
-  <legend>annotation</legend>
-  <form [formGroup]="form" (submit)="save()">
-    <!-- text -->
-    <mat-form-field>
-      <mat-label>text</mat-label>
-      <textarea
-        #txt
-        matInput
-        [formControl]="text"
-        rows="3"
-        (keyup.control.enter)="save()"
-      ></textarea>
-      <mat-hint>ctrl+Enter = save</mat-hint>
-      @if ($any(text).errors?.required && (text.dirty || text.touched)) {
-      <mat-error>text required</mat-error>
-      } @if ($any(text).errors?.maxLength && (text.dirty || text.touched)) {
-      <mat-error>text too long</mat-error>
-      }
-    </mat-form-field>
-    <div class="center-content">
-      <button type="button" mat-icon-button (click)="close()">
-        <mat-icon class="mat-warn">cancel</mat-icon>
-      </button>
-      <button
-        type="submit"
-        mat-icon-button
-        [disabled]="form.pristine || form.invalid"
-      >
-        <mat-icon class="mat-primary">check_circle</mat-icon>
-      </button>
-    </div>
-  </form>
-</fieldset>
+<form (submit)="save($event)">
+  <mat-form-field class="text-field">
+    <mat-label>text</mat-label>
+    <textarea
+      matInput
+      rows="3"
+      [formField]="editForm.text"
+      (keydown.control.enter)="save($event)"
+    ></textarea>
+    <mat-hint>Ctrl+Enter = save</mat-hint>
+    @if (editForm.text().touched() && editForm.text().invalid()) {
+    <mat-error>{{ editForm.text().errors()[0]?.message }}</mat-error>
+    }
+  </mat-form-field>
+  <div class="actions">
+    <button type="button" mat-stroked-button (click)="close()">
+      <mat-icon>cancel</mat-icon>
+      cancel
+    </button>
+    <button
+      type="submit"
+      mat-flat-button
+      [disabled]="editForm().invalid()"
+    >
+      <mat-icon>check_circle</mat-icon>
+      save
+    </button>
+  </div>
+</form>
